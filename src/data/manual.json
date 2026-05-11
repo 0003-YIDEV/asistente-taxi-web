@@ -1,0 +1,125 @@
+[
+  {
+    "title": "Gestiones Fiscales, Contables y Administrativas para Taxistas Autónomos",
+    "content": "**ESPAÑA · 2026**\n\n---",
+    "subsections": [
+      {
+        "title": "Información del Documento",
+        "content": "*   **Descripción:** Guía profesional paso a paso para asesorías y gestorías integrales.\n*   **Contenido:** Procedimientos detallados campo por campo, plantillas, plazos, casos prácticos y régimen sancionador.\n*   **Clasificación de Actividad:**\n    *   **Epígrafe IAE:** 721.2 (Transporte por autotaxis)\n    *   **CNAE:** 4932 (Transporte por taxi)\n*   **Uso:** Documento profesional · Uso interno\n\n---"
+      }
+    ]
+  },
+  {
+    "title": "Aviso, Alcance y Cómo Usar este Manual",
+    "content": "Este manual está concebido como una **herramienta operativa interna** para asesores y gestores que atienden a taxistas autónomos (persona física) con licencia municipal.\n\n* **Actividad específica:** Epígrafe IAE 721.2 · CNAE 4932.\n* **Ámbito geográfico:** \n    * **Gestión Local:** Foco principal en el Área Metropolitana de Barcelona (AMB · IMET).\n    * **Gestión Estatal:** La normativa fiscal y de Seguridad Social es de aplicación nacional.\n* **Alcance integral:** Cubre desde el alta/baja hasta la gestión de gasóleo profesional, ITV, subvenciones y recursos de multas.",
+    "subsections": [
+      {
+        "title": "Estructura de cada Capítulo",
+        "content": "Cada sección de este manual sigue un esquema rígido para facilitar la consulta rápida:\n1.  **Qué es y por qué es obligatorio:** Encuadre normativo y motivo del trámite.\n2.  **Documentación previa:** Checklist de requisitos a pedir al cliente.\n3.  **Procedimiento paso a paso:** Ruta exacta en el portal administrativo, campo por campo.\n4.  **Plazos y consecuencias del incumplimiento:** Detalle de recargos y sanciones.\n5.  **Caso práctico:** Ejemplo realista cumplimentado.\n6.  **Plantillas:** Modelos editables para comunicación y archivo."
+      },
+      {
+        "title": "Importante: Actualizaciones Normativas (Vigencia 2026)",
+        "content": "El contenido incorpora las novedades legislativas vigentes a **1 de enero de 2026**:\n\n| Norma / Concepto | Referencia Legal | Impacto |\n| :--- | :--- | :--- |\n| **Cotización Autónomos** | Real Decreto-ley 16/2025 | Prórroga del sistema por ingresos reales. |\n| **Mecanismo Equidad (MEI)** | --- | Subida del MEI al **0,9%**. |\n| **Régimen de Módulos** | Orden HAC/1425/2025 | Mantenimiento íntegro para el sector taxi. |\n| **Gasóleo Profesional** | RDL 7/2026 | Prórroga de la ayuda al combustible. |\n\n> [!IMPORTANT]\n> **Verificación Local:** Las licencias y trámites locales pueden variar fuera del AMB. Antes de actuar, verificar instrucciones en [taxi.amb.cat](https://taxi.amb.cat).\n\n---\n\n\n1. **Recomendaciones generales para la gestoría**\n2. **Documentación base que siempre debes pedir al cliente**\n3. **Alta como autónomo taxista (inicio de actividad)**\n4. **Baja como autónomo taxista**\n5. **Modificaciones de datos del autónomo**\n6. **Obligaciones fiscales trimestrales y anuales**\n7. **Gasóleo profesional — devolución del Impuesto sobre Hidrocarburos**\n8. **Gestión de la licencia de taxi (IMET)**\n9. **Trámites DGT e ITV**\n10. **Otros servicios habituales (Multas, Ayudas, Inspecciones)**\n11. **Tabla de plazos y régimen sancionador**\n12. **Consejos finales y herramientas**\n*   **Anexo I: Plantillas editables**\n*   **Anexo II: Checklists operativos**\n\n---"
+      }
+    ]
+  },
+  {
+    "title": "1. Recomendaciones generales para la gestoría",
+    "content": "El asesor debe interiorizar principios operativos para prevenir errores y sanciones. La mayoría de incidencias provienen de fallos de secuenciación y falta de poder de representación.",
+    "subsections": [
+      {
+        "title": "1.1 El orden de los trámites es innegociable",
+        "content": "| Fase | Alta de Actividad | Baja de Actividad | Modificaciones |\n| :--- | :--- | :--- | :--- |\n| **1.º** | **Seguridad Social (RETA)** | **Seguridad Social** | **Seguridad Social** |\n| **2.º** | **Hacienda (AEAT)** | **Hacienda** | **Hacienda** |\n| **3.º** | **Ayuntamiento / IMET** | **IMET** | **IMET** |\n| **4.º** | **DGT / ITV** | **DGT** | **DGT / ITV** |\n\n*   **SS antes que AEAT:** La AEAT cruza datos con la TGSS en 48-72h.\n*   **AEAT antes que IMET:** El IMET exige certificado de estar al corriente y alta censal 721.2.\n*   **IMET antes que DGT:** La DGT exige autorización previa del ente local para el cambio de uso a \"autotaxi\"."
+      },
+      {
+        "title": "1.2 Identificación electrónica",
+        "content": "| Portal | Medio recomendado | Notas |\n| :--- | :--- | :--- |\n| **AEAT** | **Certificado FNMT** | Necesario para firmar modelos 303, 130, 036. |\n| **Import@ss** | **Cl@ve PIN** | Muy ágil para trámites de RETA. |\n| **IMET** | **idCAT Móvil** | Opción más cómoda en Cataluña (alta en 5 min). |"
+      },
+      {
+        "title": "1.3 Poder de representación (REGAP)",
+        "content": "Se recomienda formalizar el **apoderamiento general (GENERALLEY58)** en la Sede AEAT. Permite al asesor actuar sin pedir la firma del cliente para cada trimestre."
+      },
+      {
+        "title": "1.4 Archivo y trazabilidad",
+        "content": "Toda actuación debe documentarse con: (i) Captura del trámite, (ii) Justificante PDF con CSV y (iii) Apunte interno en ficha.\n\n---"
+      }
+    ]
+  },
+  {
+    "title": "2. Documentación base (Checklist primera reunión)",
+    "content": "*   [ ] **Identificación:** DNI/NIE, Carné B (min. 1 año), Credencial taxista.\n*   [ ] **Actividad:** Carné IMET, Permiso circulación, Ficha técnica ITV (servicio público).\n*   [ ] **Económicos:** IBAN (titularidad propia), Seguro del vehículo + recibo.\n*   [ ] **Fiscal:** Referencia catastral del domicilio, estimación de ingresos/gastos.\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "3. Alta como autónomo taxista (Paso a paso)",
+    "content": "",
+    "subsections": [
+      {
+        "title": "3.1 Seguridad Social (RETA)",
+        "content": "*   **Portal:** Import@ss.\n*   **Datos clave:** IAE 721.2 / CNAE 4932. Previsión de rendimientos netos anuales obligatoria.\n*   **Tarifa Plana 2026:** 80 €/mes (aprox. **88,64 €** con MEI 0,9%). Solo si no ha sido autónomo en los últimos 2 años."
+      },
+      {
+        "title": "3.2 Hacienda (Modelo 037)",
+        "content": "*   **Casilla 110:** Alta.\n*   **Página 2A (IVA):** Régimen Simplificado (Módulos) es lo habitual.\n*   **Página 4 (IRPF):** Estimación Objetiva (Módulos). Renunciar solo si hay gran inversión inicial (vehículo nuevo/leasing)."
+      },
+      {
+        "title": "3.3 Comunicación IMET",
+        "content": "*   Instancia genérica adjuntando altas de SS y AEAT para legalizar la explotación de la licencia.\n\n---"
+      }
+    ]
+  },
+  {
+    "title": "4. Baja como autónomo taxista",
+    "content": "*   **SS (RETA):** Plazo de **3 días naturales**.\n*   **Hacienda (037):** Plazo de **30 días**.\n*   **Obligación:** Deben presentarse los últimos modelos trimestrales y el resumen anual 390 en enero del año siguiente, aunque ya se esté de baja.\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "5. Modificaciones de datos",
+    "content": "*   **Bases de cotización:** Se pueden cambiar hasta 6 veces al año (bimestralmente).\n*   **Calendario 2026:** Solicitudes hasta final de mes par (feb, abr, jun, ago, oct, dic).\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "6. Obligaciones fiscales trimestrales",
+    "content": "| Modelo | Concepto | Periodicidad |\n| :--- | :--- | :--- |\n| **303** | IVA (Simplificado o General) | Trimestral (Abr, Jul, Oct, Ene) |\n| **131** | IRPF Módulos | Trimestral (Abr, Jul, Oct, Ene) |\n| **390** | Resumen Anual IVA | Anual (Enero) |\n| **100** | Renta | Anual (Abril-Junio) |\n\n*   **IVA del Taxi:** 10% al pasajero, 21% en compras. El combustible es **100% deducible**.\n*   **Fórmula Módulos:** Basado en personal asalariado, no asalariado y km recorridos. Se aplica reducción general del **5%** en 2026.\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "7. Gasóleo profesional",
+    "content": "*   **Beneficio:** Devolución parcial del Impuesto sobre Hidrocarburos.\n*   **Ayuda 2026 (RDL 7/2026):** **20 ct/L** adicionales (22/mar al 30/jun).\n*   **Requisito Crítico:** Presentar la **Declaración Anual de Kilómetros** antes del **31 de marzo**. Su omisión supone la pérdida de todas las devoluciones.\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "8. Gestión de la licencia (IMET)",
+    "content": "*   **Transferencia:** Trámite de compraventa (aprox. 120k-160k €). Sujeto a ITP (5% en Cataluña).\n*   **Vehículo:** Sustitución obligatoria si el coche cumple la antigüedad máxima o por siniestro. Requiere ITV especial taxi y verificación de taxímetro.\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "9. Trámites DGT e ITV",
+    "content": "*   **ITV Taxi:** Anual hasta los 8 años; semestral a partir de entonces.\n*   **DGT:** El vehículo debe constar con el código de servicio \"autotaxi\".\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "10. Otros servicios",
+    "content": "*   **Multas:** 20 días para alegaciones. Frecuentes: parada indebida, falta de distintivos o taxímetro.\n*   **Subvenciones:** Plan MOVES Taxi (hasta 9.000 € por vehículo eléctrico).\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "11. Tabla de plazos y sanciones",
+    "content": "| Retraso (LGT 27) | Recargo | Intereses |\n| :--- | :--- | :--- |\n| Hasta 12 meses | $1\\% + 1\\%$ por mes completo | No |\n| Más de 12 meses | $15\\%$ | Sí |\n\n*   **Consejo:** Presentar siempre de forma voluntaria antes de que llegue el requerimiento para evitar sanciones del 50-150%.\n\n---",
+    "subsections": []
+  },
+  {
+    "title": "12. Consejos finales",
+    "content": "*   **Digitalización:** Recomendar al cliente apps como **Drivvo** (control km) o **SumUp** (cobro tarjeta).\n*   **Comunicación:** Enviar el justificante de cada presentación al cliente inmediatamente para generar confianza.\n\n---",
+    "subsections": [
+      {
+        "title": "Plantilla: Poder AEAT (Resumen)",
+        "content": "\"D./Dña. **[NOMBRE]** otorga representación a **[ASESORÍA]** para la presentación de modelos 303, 131, 100 y 347...\""
+      },
+      {
+        "title": "Plantilla: Contrato Compraventa Licencia",
+        "content": "\"PRIMERA: El transmitente vende la licencia n.º **[XXXX]** por el precio de **[IMPORTE]**... QUINTA: Condicionado a aprobación del IMET...\"\n\n---\n\n\n*   **Alta Actividad:** [ ] RETA -> [ ] 037 -> [ ] IMET -> [ ] Gasóleo Prof.\n*   **Trimestre:** [ ] Pedir docs día 1 -> [ ] Presentar día 19 -> [ ] Justificante día 20.\n\n---\n**FIN DEL MANUAL**\n**Versión 1.0 (2026)**"
+      }
+    ]
+  }
+]

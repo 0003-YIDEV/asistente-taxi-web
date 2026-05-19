@@ -3,11 +3,11 @@ import { BentoCard } from '@/components/BentoCard';
 import { ManualViewer } from '@/components/ManualViewer';
 import { ChecklistModule } from '@/components/ChecklistModule';
 import { AlertsModule } from '@/components/AlertsModule';
-import { 
-  BookOpen, 
-  CheckSquare, 
-  Bell, 
-  ExternalLink, 
+import {
+  BookOpen,
+  CheckSquare,
+  Bell,
+  ExternalLink,
   Search,
   LayoutDashboard
 } from 'lucide-react';
@@ -26,12 +26,12 @@ export default function Home() {
             <p className="text-sm text-gray-500 font-medium">Gestión Fiscal y Administrativa · Clifford Standard</p>
           </div>
         </div>
-        
+
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar trámites, plazos o modelos..." 
+          <input
+            type="text"
+            placeholder="Buscar trámites, plazos o modelos..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary transition-all shadow-sm"
           />
         </div>
@@ -39,10 +39,10 @@ export default function Home() {
 
       {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-min">
-        
+
         {/* Lector del Manual */}
-        <BentoCard 
-          title="Manual de Consulta" 
+        <BentoCard
+          title="Manual de Consulta"
           icon={<BookOpen size={18} />}
           className="md:col-span-2 md:row-span-3 min-h-[600px]"
         >
@@ -50,8 +50,8 @@ export default function Home() {
         </BentoCard>
 
         {/* Checklists Operativos */}
-        <BentoCard 
-          title="Tareas y Checklists" 
+        <BentoCard
+          title="Tareas y Checklists"
           icon={<CheckSquare size={18} />}
           className="md:col-span-2"
         >
@@ -59,8 +59,8 @@ export default function Home() {
         </BentoCard>
 
         {/* Alertas y Plazos */}
-        <BentoCard 
-          title="Próximos Plazos" 
+        <BentoCard
+          title="Próximos Plazos"
           icon={<Bell size={18} />}
           className="md:col-span-1 md:row-span-2"
         >
@@ -68,8 +68,8 @@ export default function Home() {
         </BentoCard>
 
         {/* Accesos Rápidos */}
-        <BentoCard 
-          title="Enlaces Externos" 
+        <BentoCard
+          title="Enlaces Externos"
           className="md:col-span-1 md:row-span-2"
         >
           <div className="flex flex-col gap-2">
@@ -79,10 +79,10 @@ export default function Home() {
               { label: 'Portal IMET', url: 'https://taxi.amb.cat/' },
               { label: 'DGT - Trámites', url: 'https://sede.dgt.gob.es/' },
             ].map((link, i) => (
-              <a 
-                key={i} 
-                href={link.url} 
-                target="_blank" 
+              <a
+                key={i}
+                href={link.url}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all group"
               >

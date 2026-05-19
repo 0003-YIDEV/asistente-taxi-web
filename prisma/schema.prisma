@@ -1,0 +1,88 @@
+// gestoria-taxi · schema R1.1 (solo infra/auth — SIN datos de cliente todavía)
+// Prisma 7: la URL NO va aquí, va en prisma.config.ts
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Auth.js v5 (@auth/prisma-adapter) ---
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+
+  // Propios: control de acceso + credenciales + 2FA
+  passwordHash  String?                       // argon2id (R1.2)
+  role          String    @default("socio")   // rol único hoy; extensión RBAC futura
+  totpSecretEnc String?                       // secreto TOTP cifrado AES-256-GCM (R1.1-6)
+
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Log de auditoría append-only (cadena de hash: lógica en R1.3) ---
+model AuditLog {
+  id         String   @id @default(cuid())
+  ts         DateTime @default(now())
+  actorId    String?               // null = sistema/automatización
+  actorEmail String?               // snapshot legible del actor
+  action     String                // LOGIN, LOGIN_FAIL, READ_CLIENTE, CREATE, UPDATE, DELETE, DOC_GEN
+  entity     String?               // p.ej. "Cliente", "Documento"
+  entityId   String?
+  meta       Json?                 // contexto/diff (NUNCA datos sensibles en claro)
+  prevHash   String?               // hash de la fila previa
+  hash       String   @unique      // SHA-256(prevHash + campos canónicos)
+
+  @@index([ts])
+  @@index([entity, entityId])
+}

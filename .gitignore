@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +40,34 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# --- gestoria-taxi · R1.0 RGPD: datos sensibles, NUNCA a git ---
+# (.env* y *.pem ya cubiertos arriba)
+# bóveda documental y subidas de clientes
+/uploads/
+/storage/
+/documentos/
+# volcados / backups de base de datos
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+dump.rdb
+# certificados y material criptográfico (cliente y app)
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+*.jks
+*.keystore
+# secretos / claves de cifrado de campo
+*.secret
+secrets.*
+
+# prisma client generado (se regenera con `prisma generate`)
+/src/generated/
+# las MIGRACIONES Prisma SÍ se versionan (anula el patrón *.sql de arriba)
+!prisma/migrations/
+!prisma/migrations/**

@@ -1,0 +1,24 @@
+# gestoria-taxi · Postgres de DESARROLLO (datos sintéticos únicamente)
+# Credenciales reales en .env.local (gitignored). Levantar con:
+#   docker-compose --env-file .env.local up -d
+# NUNCA usar este contenedor para datos reales de cliente (eso es R2, host UE).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gestoria-taxi-pg
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gestoria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_only_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-gestoria_dev}
+    ports:
+      - "127.0.0.1:5433:5432"   # solo loopback: NO expuesto a la red
+    volumes:
+      - gestoria_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gestoria} -d ${POSTGRES_DB:-gestoria_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  gestoria_pgdata:

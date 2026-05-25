@@ -47,5 +47,10 @@ export async function createClient(formData: {
   });
 
   revalidatePath("/");
-  return client;
+  
+  return {
+    ...client,
+    nif: decryptField(client.nifEnc),
+    iban: decryptField(client.ibanEnc),
+  };
 }

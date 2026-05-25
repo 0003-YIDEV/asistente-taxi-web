@@ -45,7 +45,7 @@ export function ClientSelector({ onSelect, selectedId }: ClientSelectorProps) {
       regimen: "Módulos (simplificado)",
     };
     const newClient = await createClient(dummy);
-    setClients([...clients, { ...newClient, nif: "00000000T" }]);
+    setClients([...clients, newClient]);
     onSelect(newClient.id);
   }
 

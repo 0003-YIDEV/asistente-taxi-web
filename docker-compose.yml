@@ -23,9 +23,9 @@ services:
     container_name: gestoria-taxi-pg
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-gestoria}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_only_change_me}
-      POSTGRES_DB: ${POSTGRES_DB:-gestoria_dev}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "127.0.0.1:5433:5432" # Expuesto solo localmente para npx prisma
     volumes:

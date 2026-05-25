@@ -12,10 +12,11 @@ export interface ClienteDummy {
   telefono: string;
   numLicencia: string;
   matricula: string;
-  regimen: "Módulos (simplificado)" | "Estimación directa";
+  regimen: string;
 }
 
 // NIFs y datos claramente FICTICIOS, solo para validar el flujo.
+// TODO: Eliminar una vez la integración con BD sea total.
 export const CLIENTES_DUMMY: ClienteDummy[] = [
   {
     id: "c1",

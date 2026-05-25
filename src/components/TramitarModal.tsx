@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, ArrowLeft, Copy, AlertTriangle } from "lucide-react";
+import { Search, X, ArrowLeft, Copy, AlertTriangle, Loader2 } from "lucide-react";
 import {
-  CLIENTES_DUMMY,
   type ClienteDummy,
   type PlantillaDummy,
 } from "@/lib/serviciosData";
 import { rellenarPlantilla } from "@/lib/fillPlantilla";
+import { getClients } from "@/lib/actions/client";
 
 interface TramitarModalProps {
   plantilla: PlantillaDummy | null;
@@ -15,17 +15,41 @@ interface TramitarModalProps {
 }
 
 export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
+  const [clientes, setClientes] = useState<ClienteDummy[]>([]);
+  const [cargando, setCargando] = useState(false);
   const [cliente, setCliente] = useState<ClienteDummy | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [ediciones, setEdiciones] = useState<Record<string, string>>({});
   const [copiado, setCopiado] = useState(false);
 
+  // Cargar clientes desde la BD al abrir el modal.
+  useEffect(() => {
+    let mounted = true;
+    if (plantilla) {
+      queueMicrotask(() => {
+        if (mounted) setCargando(true);
+      });
+      getClients()
+        .then((data) => {
+          if (mounted) setClientes(data);
+        })
+        .finally(() => {
+          if (mounted) setCargando(false);
+        });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [plantilla]);
+
   // Reset cada vez que se abre o cambia la plantilla.
   useEffect(() => {
-    setCliente(null);
-    setBusqueda("");
-    setEdiciones({});
-    setCopiado(false);
+    queueMicrotask(() => {
+      setCliente(null);
+      setBusqueda("");
+      setEdiciones({});
+      setCopiado(false);
+    });
   }, [plantilla]);
 
   // Cerrar con Escape (solo con modal abierto).
@@ -40,14 +64,14 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
 
   const clientesFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return CLIENTES_DUMMY;
-    return CLIENTES_DUMMY.filter(
+    if (!q) return clientes;
+    return clientes.filter(
       (c) =>
         c.nombre.toLowerCase().includes(q) ||
         c.nif.toLowerCase().includes(q) ||
         c.numLicencia.toLowerCase().includes(q),
     );
-  }, [busqueda]);
+  }, [busqueda, clientes]);
 
   const resultado = useMemo(
     () => (plantilla && cliente ? rellenarPlantilla(plantilla, cliente) : null),
@@ -143,12 +167,18 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              {clientesFiltrados.length === 0 && (
+              {cargando && (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
+                  <Loader2 size={24} className="animate-spin" />
+                  <p className="text-sm font-medium">Cargando clientes...</p>
+                </div>
+              )}
+              {!cargando && clientesFiltrados.length === 0 && (
                 <p className="text-sm text-gray-400 py-4 text-center">
                   Sin resultados
                 </p>
               )}
-              {clientesFiltrados.map((c) => (
+              {!cargando && clientesFiltrados.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setCliente(c)}

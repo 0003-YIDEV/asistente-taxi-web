@@ -70,6 +70,37 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model Client {
+  id          String   @id @default(cuid())
+  userId      String   // El asesor que gestiona este cliente
+  nombre      String
+  nifEnc      String   // Cifrado
+  domicilio   String
+  ibanEnc     String   // Cifrado
+  email       String
+  telefono    String
+  numLicencia String
+  matricula   String
+  regimen     String
+
+  user              User                @relation(fields: [userId], references: [id])
+  checklistProgress ChecklistProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChecklistProgress {
+  id        String  @id @default(cuid())
+  clientId  String
+  itemId    String  // ID del item del checklist (estático en manual.json)
+  completed Boolean @default(false)
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, itemId])
+}
+
 // --- Log de auditoría append-only (cadena de hash: lógica en R1.3) ---
 model AuditLog {
   id         String   @id @default(cuid())

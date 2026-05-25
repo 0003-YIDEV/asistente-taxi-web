@@ -19,12 +19,14 @@ export default function LoginPage() {
       const res = await signIn("credentials", {
         email,
         password,
-        redirect: true,
+        redirect: false,
         callbackUrl: "/",
       });
 
       if (res?.error) {
         setError("Credenciales inválidas");
+      } else {
+        window.location.href = "/";
       }
     } catch {
       setError("Error al iniciar sesión");

@@ -44,6 +44,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
+# Instalar prisma globalmente en el runner para que las dependencias como @prisma/config estén disponibles
+USER root
+RUN npm install -g prisma@7.8.0
 USER nextjs
 
 EXPOSE 3000

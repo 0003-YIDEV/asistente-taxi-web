@@ -15,6 +15,10 @@ COPY . .
 # Desactivar telemetría de Next.js durante la construcción
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Necesario para que Prisma no falle durante el build (estático/colección de datos)
+ARG DATABASE_URL="postgresql://placeholder:5432/db"
+ENV DATABASE_URL=$DATABASE_URL
+
 # Generar Cliente de Prisma (salida personalizada en src/generated/prisma)
 RUN npx prisma generate
 

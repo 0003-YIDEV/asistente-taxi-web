@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, ChevronDown, ArrowLeft, Home } from "lucide-react";
+import { ChevronRight, ChevronDown, ArrowLeft, Home, Pencil } from "lucide-react";
 import { getServicios } from "@/data/servicios";
 import { type Workflow, type NivelAuto } from "@/data/workflows";
+import { WorkflowEditor } from "@/components/WorkflowEditor";
 
 const NIVEL: Record<NivelAuto, { dot: string; label: string; cls: string }> = {
   auto: { dot: "🟢", label: "Auto", cls: "bg-green-50 text-green-700 border-green-200" },
@@ -44,7 +45,23 @@ function Lista({ items }: { items: string[] }) {
   );
 }
 
-function WorkflowCard({ w, open, onToggle }: { w: Workflow; open: boolean; onToggle: () => void }) {
+function WorkflowCard({
+  w,
+  open,
+  onToggle,
+  canEdit,
+  editing,
+  onEdit,
+  onCloseEdit,
+}: {
+  w: Workflow;
+  open: boolean;
+  onToggle: () => void;
+  canEdit: boolean;
+  editing: boolean;
+  onEdit: () => void;
+  onCloseEdit: () => void;
+}) {
   const conteo = w.pasos.reduce(
     (acc, p) => ({ ...acc, [p.nivel]: (acc[p.nivel] ?? 0) + 1 }),
     {} as Record<NivelAuto, number>,
@@ -52,15 +69,17 @@ function WorkflowCard({ w, open, onToggle }: { w: Workflow; open: boolean; onTog
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-      <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors">
-        <ChevronRight size={16} className={`text-gray-400 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{w.nombre}</p>
-          <p className="text-xs text-gray-500">
-            {w.refManual}
-            {w.meta.plazo ? ` · plazo: ${w.meta.plazo}` : ""}
-          </p>
-        </div>
+      <div className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+        <button onClick={onToggle} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+          <ChevronRight size={16} className={`text-gray-400 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900">{w.nombre}</p>
+            <p className="text-xs text-gray-500">
+              {w.refManual}
+              {w.meta.plazo ? ` · plazo: ${w.meta.plazo}` : ""}
+            </p>
+          </div>
+        </button>
         <div className="hidden sm:flex items-center gap-1 shrink-0">
           {(["auto", "asistido", "humano"] as NivelAuto[]).map((n) =>
             conteo[n] ? (
@@ -70,9 +89,20 @@ function WorkflowCard({ w, open, onToggle }: { w: Workflow; open: boolean; onTog
             ) : null,
           )}
         </div>
-      </button>
+        {canEdit && !editing && (
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-[var(--color-brand-primary)] hover:bg-blue-50 shrink-0"
+            title="Editar procedimiento"
+          >
+            <Pencil size={15} />
+          </button>
+        )}
+      </div>
 
-      {open && (
+      {editing && <WorkflowEditor w={w} onDone={onCloseEdit} />}
+
+      {open && !editing && (
         <div className="px-4 pb-4 pt-1 flex flex-col gap-4 border-t border-gray-50">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             {w.meta.portal && <p><span className="text-gray-400">Portal:</span> {w.meta.portal}</p>}
@@ -131,7 +161,7 @@ function WorkflowCard({ w, open, onToggle }: { w: Workflow; open: boolean; onTog
   );
 }
 
-export function ProcedimientosViewer({ workflows }: { workflows: Workflow[] }) {
+export function ProcedimientosViewer({ workflows, canEdit = false }: { workflows: Workflow[]; canEdit?: boolean }) {
   const router = useRouter();
   // Agrupa los workflows por servicioId (la fuente ahora es la BD, vía props).
   const porServicio = useMemo(() => {
@@ -148,6 +178,7 @@ export function ProcedimientosViewer({ workflows }: { workflows: Workflow[] }) {
   // Por defecto, el primer servicio desplegado
   const [servicioAbierto, setServicioAbierto] = useState<string | null>(servicios[0]?.id ?? null);
   const [procAbierto, setProcAbierto] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -193,6 +224,13 @@ export function ProcedimientosViewer({ workflows }: { workflows: Workflow[] }) {
                     w={w}
                     open={procAbierto === w.id}
                     onToggle={() => setProcAbierto(procAbierto === w.id ? null : w.id)}
+                    canEdit={canEdit}
+                    editing={editId === w.id}
+                    onEdit={() => {
+                      setEditId(w.id);
+                      setProcAbierto(w.id);
+                    }}
+                    onCloseEdit={() => setEditId(null)}
                   />
                 ))}
               </div>

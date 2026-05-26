@@ -11,6 +11,7 @@ import { getServicios, type Servicio, type Procedimiento } from "@/data/servicio
 import { PLANTILLAS, type PlantillaDummy } from "@/lib/serviciosData";
 import { AlertsModule } from "./AlertsModule";
 import { ChecklistModule } from "./ChecklistModule";
+import { ClientSelector } from "./ClientSelector";
 import { TramitarModal } from "./TramitarModal";
 
 const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
@@ -33,6 +34,7 @@ export function ServiciosIndex() {
   const [servicioActivo, setServicioActivo] = useState<Servicio | null>(null);
   const [plantillaAbierta, setPlantillaAbierta] = useState<PlantillaDummy | null>(null);
   const [anotacionAbierta, setAnotacionAbierta] = useState<AnotacionManual | null>(null);
+  const [activeClientId, setActiveClientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!servicioActivo) return;
@@ -126,10 +128,13 @@ export function ServiciosIndex() {
 
           {/* Tareas y checklists */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h2 className="text-xs font-bold text-[var(--color-brand-secondary)] uppercase tracking-wider mb-4">
-              Tareas y Checklists
-            </h2>
-            <ChecklistModule />
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="text-xs font-bold text-[var(--color-brand-secondary)] uppercase tracking-wider">
+                Tareas y Checklists
+              </h2>
+              <ClientSelector selectedId={activeClientId} onSelect={setActiveClientId} />
+            </div>
+            <ChecklistModule clientId={activeClientId} />
           </div>
 
           {/* Enlaces externos */}

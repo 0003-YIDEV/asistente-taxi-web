@@ -18,7 +18,7 @@ docker-compose -f docker-compose.prod.yml up --build -d
 
 # 3. Aplicar migraciones de base de datos
 echo "🗄️ Aplicando migraciones de Prisma..."
-docker-compose -f docker-compose.prod.yml exec -T app npx prisma migrate deploy --schema ./prisma/schema.prisma
+docker-compose -f docker-compose.prod.yml exec -T app npx prisma@6.2.1 migrate deploy --schema ./prisma/schema.prisma
 
 # 4. Limpieza (opcional)
 echo "🧹 Limpiando imágenes antiguas..."

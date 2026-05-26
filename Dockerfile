@@ -43,6 +43,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
+# Instalar Prisma y tsx en el runner para migraciones y seeding post-despliegue
+RUN npm install prisma tsx
+
 USER nextjs
 
 EXPOSE 3000

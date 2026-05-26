@@ -3,7 +3,7 @@
 
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.6.1
     container_name: traefik
     command:
       - "--api.insecure=false"
@@ -16,10 +16,6 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-    environment:
-      # Docker moderno (VPS) exige API >= 1.40; Traefik v3 por defecto usa 1.24 y
-      # falla ("client version 1.24 is too old"). Fijamos una versión soportada.
-      - DOCKER_API_VERSION=1.44
     ports:
       - "80:80"
       - "443:443"

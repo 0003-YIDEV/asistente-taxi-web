@@ -9,17 +9,25 @@ import {
 import { rellenarPlantilla } from "@/lib/fillPlantilla";
 import { getClients } from "@/lib/actions/client";
 
+interface ProcedimientoSinPlantilla {
+  servicioId: string;
+  procedimientoId: string;
+  nombre: string;
+}
+
 interface TramitarModalProps {
   plantilla: PlantillaDummy | null;
+  procedimientoSinPlantilla?: ProcedimientoSinPlantilla;
   onClose: () => void;
 }
 
-export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
+export function TramitarModal({ plantilla, procedimientoSinPlantilla, onClose }: TramitarModalProps) {
   const [clientes, setClientes] = useState<ClienteDummy[]>([]);
   const [cargando, setCargando] = useState(false);
   const [cliente, setCliente] = useState<ClienteDummy | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [ediciones, setEdiciones] = useState<Record<string, string>>({});
+  const [anotacion, setAnotacion] = useState("");
   const [copiado, setCopiado] = useState(false);
 
   // Cargar clientes desde la BD al abrir el modal.
@@ -42,25 +50,27 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
     };
   }, [plantilla]);
 
-  // Reset cada vez que se abre o cambia la plantilla.
+  const abierto = plantilla !== null || procedimientoSinPlantilla !== undefined;
+
+  // Reset cada vez que se abre o cambia la plantilla/procedimiento.
   useEffect(() => {
     queueMicrotask(() => {
       setCliente(null);
       setBusqueda("");
       setEdiciones({});
+      setAnotacion("");
       setCopiado(false);
     });
-  }, [plantilla]);
+  }, [plantilla, procedimientoSinPlantilla]);
 
-  // Cerrar con Escape (solo con modal abierto).
   useEffect(() => {
-    if (!plantilla) return;
+    if (!abierto) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [plantilla, onClose]);
+  }, [abierto, onClose]);
 
   const clientesFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -78,8 +88,10 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
     [plantilla, cliente],
   );
 
-  if (!plantilla) return null;
+  if (!abierto) return null;
 
+  const modoAnotacion = procedimientoSinPlantilla !== undefined && plantilla === null;
+  const titulo = modoAnotacion ? procedimientoSinPlantilla!.nombre : plantilla!.servicio;
   const paso: "cliente" | "documento" = cliente ? "documento" : "cliente";
 
   function textoPlano(): string {
@@ -98,6 +110,16 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
   async function copiar() {
     try {
       await navigator.clipboard.writeText(textoPlano());
+      setCopiado(true);
+      window.setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      setCopiado(false);
+    }
+  }
+
+  async function copiarAnotacion() {
+    try {
+      await navigator.clipboard.writeText(anotacion);
       setCopiado(true);
       window.setTimeout(() => setCopiado(false), 2000);
     } catch {
@@ -133,7 +155,7 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
             )}
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {plantilla.servicio}
+                {titulo}
               </p>
               <p className="text-xs text-gray-500">
                 {paso === "cliente"
@@ -193,6 +215,43 @@ export function TramitarModal({ plantilla, onClose }: TramitarModalProps) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {paso === "documento" && modoAnotacion && (
+          <div className="flex flex-col overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100 text-blue-600 text-xs font-semibold">
+              <AlertTriangle size={14} />
+              ANOTACIÓN MANUAL · sin plantilla — escribe libremente
+            </div>
+            <div className="p-4 overflow-auto flex-1">
+              <textarea
+                autoFocus
+                value={anotacion}
+                onChange={(e) => setAnotacion(e.target.value)}
+                placeholder="Escribe aquí las notas o instrucciones para este trámite…"
+                className="w-full min-h-[200px] p-3 border border-gray-200 rounded-lg text-sm text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary"
+              />
+            </div>
+            <footer className="flex items-center justify-between gap-3 p-4 border-t border-gray-100">
+              <span className="text-xs text-gray-500">
+                Cliente: <strong>{cliente?.nombre}</strong>
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCliente(null)}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Cambiar cliente
+                </button>
+                <button
+                  onClick={copiarAnotacion}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:opacity-90 transition"
+                >
+                  <Copy size={15} /> {copiado ? "Copiado ✓" : "Copiar texto"}
+                </button>
+              </div>
+            </footer>
           </div>
         )}
 

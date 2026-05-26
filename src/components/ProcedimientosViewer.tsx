@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, ChevronDown, ArrowLeft, Home } from "lucide-react";
 import { getServicios } from "@/data/servicios";
-import { getWorkflowsByServicio, type Workflow, type NivelAuto } from "@/data/workflows";
+import { type Workflow, type NivelAuto } from "@/data/workflows";
 
 const NIVEL: Record<NivelAuto, { dot: string; label: string; cls: string }> = {
   auto: { dot: "🟢", label: "Auto", cls: "bg-green-50 text-green-700 border-green-200" },
@@ -131,9 +131,20 @@ function WorkflowCard({ w, open, onToggle }: { w: Workflow; open: boolean; onTog
   );
 }
 
-export function ProcedimientosViewer() {
+export function ProcedimientosViewer({ workflows }: { workflows: Workflow[] }) {
   const router = useRouter();
-  const servicios = getServicios().filter((s) => getWorkflowsByServicio(s.id).length > 0);
+  // Agrupa los workflows por servicioId (la fuente ahora es la BD, vía props).
+  const porServicio = useMemo(() => {
+    const map = new Map<string, Workflow[]>();
+    for (const w of workflows) {
+      const arr = map.get(w.servicioId) ?? [];
+      arr.push(w);
+      map.set(w.servicioId, arr);
+    }
+    return map;
+  }, [workflows]);
+
+  const servicios = getServicios().filter((s) => (porServicio.get(s.id)?.length ?? 0) > 0);
   // Por defecto, el primer servicio desplegado
   const [servicioAbierto, setServicioAbierto] = useState<string | null>(servicios[0]?.id ?? null);
   const [procAbierto, setProcAbierto] = useState<string | null>(null);
@@ -159,7 +170,7 @@ export function ProcedimientosViewer() {
       {/* Servicios desplegables */}
       {servicios.map((s) => {
         const abierto = servicioAbierto === s.id;
-        const workflows = getWorkflowsByServicio(s.id);
+        const workflowsServicio = porServicio.get(s.id) ?? [];
         return (
           <section key={s.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <button
@@ -170,13 +181,13 @@ export function ProcedimientosViewer() {
                 {String(s.numero).padStart(2, "0")}
               </span>
               <h2 className="flex-1 text-sm font-bold text-gray-900 min-w-0">{s.nombre}</h2>
-              <span className="text-xs text-gray-400 shrink-0">{workflows.length} proc.</span>
+              <span className="text-xs text-gray-400 shrink-0">{workflowsServicio.length} proc.</span>
               <ChevronDown size={18} className={`text-gray-400 shrink-0 transition-transform ${abierto ? "rotate-180" : ""}`} />
             </button>
 
             {abierto && (
               <div className="px-3 pb-3 flex flex-col gap-2 border-t border-gray-50 pt-3">
-                {workflows.map((w) => (
+                {workflowsServicio.map((w) => (
                   <WorkflowCard
                     key={w.id}
                     w={w}

@@ -1,7 +1,12 @@
 import { ListChecks } from "lucide-react";
 import { ProcedimientosViewer } from "@/components/ProcedimientosViewer";
+import { getWorkflowsFromDB } from "@/lib/workflows-db";
 
-export default function ProcedimientosPage() {
+// Lee siempre fresco de la BD (la guía es editable desde la web).
+export const dynamic = "force-dynamic";
+
+export default async function ProcedimientosPage() {
+  const workflows = await getWorkflowsFromDB();
   return (
     <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full">
       <header className="flex items-center gap-3 mb-8">
@@ -16,7 +21,7 @@ export default function ProcedimientosPage() {
         </div>
       </header>
 
-      <ProcedimientosViewer />
+      <ProcedimientosViewer workflows={workflows} />
     </main>
   );
 }

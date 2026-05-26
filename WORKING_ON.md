@@ -17,11 +17,17 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - **Deploy/infra** (sesión anterior): Traefik v3.0→v3.6.1 (fix API Docker), split
   `auth.config.ts` edge-safe (fix 500 del middleware). App viva en horus.support con SSL.
 
-### 🟡 Próxima (declarada, NO iniciada aún)
-- **Editor de la guía**: migrar workflows a BD para editarlos sin código.
-  - Tocaré: `prisma/schema.prisma` (modelos Workflow + Paso), `src/lib/actions/` (CRUD),
-    `src/app/procedimientos/`, seed desde `src/data/workflows.ts`.
-  - ⚠️ Socio: aviso de cambio en `schema.prisma` (nuevos modelos + migración).
+### 🟡 Editor de la guía — EN CURSO (migrar workflows a BD, editar sin código)
+- ✅ **Fase 1-2**: modelos `Workflow` + `WorkflowPaso` en `schema.prisma`; migraciones
+  separadas (`add_client_checklist` + `add_workflow_models`); `prisma/seed.ts` COMBINADO
+  (tu admin argon2 + mis 37 workflows / 144 pasos). Historial de migraciones regularizado.
+- ✅ **Fase 3 (lectura desde BD)**: `src/lib/workflows-db.ts` (`getWorkflowsFromDB`,
+  fallback al .ts si BD vacía); `procedimientos/page.tsx` ahora es server component async
+  que lee de BD; `ProcedimientosViewer` recibe `workflows` por props. Validado: 37 wf.
+- 🔵 **Fase 4-5 (próxima)**: server actions de escritura (CRUD pasos/URLs) + UI de edición
+  en `/procedimientos`. Tocaré: `src/lib/actions/workflows.ts` (nuevo), `ProcedimientosViewer`.
+- ⚠️ **Deploy prod pendiente** (coordinar): `migrate resolve --applied 20260526225631_add_client_checklist`
+  + `migrate deploy` + seed. BACKUP de la BD antes.
 
 ## 0003-YIDEV (Gemini CLI)
 ### ✅ Completado recientemente (2026-05-27)

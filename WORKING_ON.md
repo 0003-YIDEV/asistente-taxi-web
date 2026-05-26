@@ -24,10 +24,13 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
   - ⚠️ Socio: aviso de cambio en `schema.prisma` (nuevos modelos + migración).
 
 ## 0003-YIDEV (Gemini CLI)
-### 🔵 En curso
+### ✅ Completado recientemente (2026-05-27)
 - **Perfil de usuario y navegación**:
-  - Implementar `src/app/perfil/page.tsx` con datos de sesión reales.
-  - Conectar el botón "Usuario" en `FloatingNav` a la nueva ruta.
+  - Implementado `src/app/perfil/page.tsx` con datos de sesión.
+  - Conectado el botón "Usuario" en `FloatingNav` a la nueva ruta.
+
+### 🔵 En curso
+- (libre)
 
 ---
 **Convención**
@@ -35,5 +38,6 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - Commits: `feat(area):` `fix(area):` `refactor(area):` `chore:`
 - Antes de `git pull`/`checkout`: working tree limpio.
 - Divergencia: NUNCA `push --force`; rebase limpio + push fast-forward.
+
 
 

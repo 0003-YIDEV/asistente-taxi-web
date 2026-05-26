@@ -6,7 +6,8 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 ## 0001-YIDev (Zyro / Claude)
 
 ### ✅ Completado recientemente (2026-05-27)
-- **Guía de procedimientos visual** (en `main`):
+- **Guía de procedimientos visual** — ✅ EN MAIN y ✅ DESPLEGADA en
+  **horus.support/procedimientos**:
   - `src/data/workflows.ts` — 9 servicios / 39 procedimientos como datos (FUENTE ÚNICA;
     sirve para el manual visual y la futura automatización). Spec: Manual Taxistas 2026.
   - `src/app/procedimientos/page.tsx` + `src/components/ProcedimientosViewer.tsx` —
@@ -16,7 +17,7 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - **Deploy/infra** (sesión anterior): Traefik v3.0→v3.6.1 (fix API Docker), split
   `auth.config.ts` edge-safe (fix 500 del middleware). App viva en horus.support con SSL.
 
-### 🔵 En curso
+### 🟡 Próxima (declarada, NO iniciada aún)
 - **Editor de la guía**: migrar workflows a BD para editarlos sin código.
   - Tocaré: `prisma/schema.prisma` (modelos Workflow + Paso), `src/lib/actions/` (CRUD),
     `src/app/procedimientos/`, seed desde `src/data/workflows.ts`.

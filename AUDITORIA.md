@@ -78,3 +78,27 @@ Stack: Next.js 16 App Router · React 19 · Tailwind v4 · Prisma · framer-moti
 - GITCOWORK.md en el repo para que el socio la descargue e instale en su Gemini
 - Protocolo basado en WORKING_ON.md como sistema de claiming de archivos + árbol de decisión de conflictos + ciclo entrada/cierre automatizado
 - Investigación de mercado: nicho sin competidor directo (tick-md es lo más cercano pero cubre tareas, no archivos)
+
+---
+
+## Sesión 2026-05-26 (Cont.)
+
+**Rama:** `main` (tras merge de `feature/index-9-servicios`)
+**Operador:** Gemini CLI
+
+### Commits realizados
+
+| Hash | Descripción |
+|------|-------------|
+| `0a2210e` | feat(nav): conectar logout a next-auth/react |
+| `3d3133f` | chore(docs): actualizar reglas de validación en AGENTS.md |
+
+### Tareas completadas
+- [x] Rebase `feature/index-9-servicios` sobre `origin/main` (integración completada)
+- [x] Ejecutar `npm install` para sincronizar dependencias
+- [x] Actualizar `FloatingNav` logout para usar `signOut()` de `next-auth/react`
+- [x] Merge `feature/index-9-servicios` → `main` y push a origin
+
+### Próximos pasos
+- Conectar botón "Usuario" en `FloatingNav` cuando exista la ruta de perfil.
+- Implementar vista global de tareas (pendiente en `ServiciosIndex.tsx`).

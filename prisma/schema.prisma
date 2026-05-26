@@ -20,9 +20,9 @@ model User {
   image         String?
 
   // Propios: control de acceso + credenciales + 2FA
-  passwordHash  String?                       // argon2id (R1.2)
-  role          String    @default("socio")   // rol único hoy; extensión RBAC futura
-  totpSecretEnc String?                       // secreto TOTP cifrado AES-256-GCM (R1.1-6)
+  passwordHash  String? // argon2id (R1.2)
+  role          String  @default("socio") // rol único hoy; extensión RBAC futura
+  totpSecretEnc String? // secreto TOTP cifrado AES-256-GCM (R1.1-6)
 
   accounts Account[]
   sessions Session[]
@@ -74,12 +74,12 @@ model VerificationToken {
 }
 
 model Client {
-  id          String   @id @default(cuid())
-  userId      String   // El asesor que gestiona este cliente
+  id          String @id @default(cuid())
+  userId      String // El asesor que gestiona este cliente
   nombre      String
-  nifEnc      String   // Cifrado
+  nifEnc      String // Cifrado
   domicilio   String
-  ibanEnc     String   // Cifrado
+  ibanEnc     String // Cifrado
   email       String
   telefono    String
   numLicencia String
@@ -96,7 +96,7 @@ model Client {
 model ChecklistProgress {
   id        String  @id @default(cuid())
   clientId  String
-  itemId    String  // ID del item del checklist (estático en manual.json)
+  itemId    String // ID del item del checklist (estático en manual.json)
   completed Boolean @default(false)
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -108,14 +108,14 @@ model ChecklistProgress {
 model AuditLog {
   id         String   @id @default(cuid())
   ts         DateTime @default(now())
-  actorId    String?               // null = sistema/automatización
-  actorEmail String?               // snapshot legible del actor
-  action     String                // LOGIN, LOGIN_FAIL, READ_CLIENTE, CREATE, UPDATE, DELETE, DOC_GEN
-  entity     String?               // p.ej. "Cliente", "Documento"
+  actorId    String? // null = sistema/automatización
+  actorEmail String? // snapshot legible del actor
+  action     String // LOGIN, LOGIN_FAIL, READ_CLIENTE, CREATE, UPDATE, DELETE, DOC_GEN
+  entity     String? // p.ej. "Cliente", "Documento"
   entityId   String?
-  meta       Json?                 // contexto/diff (NUNCA datos sensibles en claro)
-  prevHash   String?               // hash de la fila previa
-  hash       String   @unique      // SHA-256(prevHash + campos canónicos)
+  meta       Json? // contexto/diff (NUNCA datos sensibles en claro)
+  prevHash   String? // hash de la fila previa
+  hash       String   @unique // SHA-256(prevHash + campos canónicos)
 
   @@index([ts])
   @@index([entity, entityId])

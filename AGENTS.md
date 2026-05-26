@@ -15,5 +15,7 @@ Antes de realizar un commit o intentar un despliegue, el agente DEBE:
 3. **Docker Build Readiness:**
    - Verificar que el `Dockerfile` incluya variables de entorno provisionales (`ARG DATABASE_URL`) para la fase de construcción estática.
    - Asegurar que `src/generated/prisma` está configurado correctamente en el generador.
+   - Para evitar desincronización de credenciales, el agente debe priorizar el uso de variables de interpolación en docker-compose.yml (ej. ${VAR}) en lugar de valores literales. Cualquier cambio en las credenciales debe realizarse ÚNICAMENTE en el archivo .env.
+   - En builds standalone de Next.js, el entorno runner es minimalista. Si se requieren herramientas de CLI adicionales (como Prisma) para tareas de post-despliegue, estas deben ser instaladas explícitamente en la /etapa final del Dockerfile
 4. **Git Hygiene:**
    - Confirmar que todos los archivos nuevos están en el índice (`git status`).

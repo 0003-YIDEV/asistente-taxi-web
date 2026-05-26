@@ -24,10 +24,23 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - ✅ **Fase 3 (lectura desde BD)**: `src/lib/workflows-db.ts` (`getWorkflowsFromDB`,
   fallback al .ts si BD vacía); `procedimientos/page.tsx` ahora es server component async
   que lee de BD; `ProcedimientosViewer` recibe `workflows` por props. Validado: 37 wf.
-- 🔵 **Fase 4-5 (próxima)**: server actions de escritura (CRUD pasos/URLs) + UI de edición
-  en `/procedimientos`. Tocaré: `src/lib/actions/workflows.ts` (nuevo), `ProcedimientosViewer`.
+- 🔵 **Fase 4-5 (en curso)**: server actions de escritura (CRUD pasos/URLs) + UI de edición
+  inline en `/procedimientos` (modo edición, **solo rol admin**). Ya creado:
+  `src/lib/actions/workflows.ts` (`updateWorkflow`, guard `requireAdmin`). Falta `canEdit`
+  en la page + UI de edición en `ProcedimientosViewer`.
 - ⚠️ **Deploy prod pendiente** (coordinar): `migrate resolve --applied 20260526225631_add_client_checklist`
   + `migrate deploy` + seed. BACKUP de la BD antes.
+
+### 🔭 Siguiente fase declarada (DESPUÉS del editor) — Bóveda documental por cliente
+- **Apartado tipo "Drive" por cliente**: selector de cliente + repositorio de documentos
+  asociados (subir, ver, actualizar, organizar). Encaja con el modelo `Documento`
+  (estructura de carpetas 00–99) ya previsto en la arquitectura.
+- **OCR** (fase posterior): extraer datos de los documentos subidos.
+- ⚠️ **Restricciones RGPD no negociables** (heredadas del proyecto):
+  - Documentos **cifrados en reposo** (mismo patrón que NIF/IBAN en `fieldEncryption`).
+  - OCR **LOCAL** (Tesseract o similar), NUNCA servicio externo / LLM de consumo:
+    los docs llevan NIF y datos de salud (mutua). Cero datos reales de clientes en LLM.
+  - NUNCA custodiar certificados/Cl@ve de clientes.
 
 ## 0003-YIDEV (Gemini CLI)
 ### ✅ Completado recientemente (2026-05-27)

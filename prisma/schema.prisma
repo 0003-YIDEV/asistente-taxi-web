@@ -1,8 +1,9 @@
 // gestoria-taxi · schema R1.1 (solo infra/auth — SIN datos de cliente todavía)
 // Prisma 7: la URL NO va aquí, va en prisma.config.ts
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {

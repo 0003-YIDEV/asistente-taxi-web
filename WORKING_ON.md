@@ -47,9 +47,17 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - **Perfil de usuario y navegación**:
   - Implementado `src/app/perfil/page.tsx` con datos de sesión.
   - Conectado el botón "Usuario" en `FloatingNav` a la nueva ruta.
+- **Integración de PDFs Oficiales (Modelo 036)**:
+  - Estructura de mapeo dinámico en `src/lib/pdf/model036Mapping.ts`.
+  - Nuevo componente `PdfForm.tsx` para solicitar datos faltantes (Ref. Catastral, etc.).
+  - Server Action `generatePdfAction` con `pdf-lib` para rellenar y descargar.
+  - Conectado a `TramitarModal` y `ServiciosIndex`.
 
 ### 🔵 En curso
-- (libre)
+- **Refinamiento de Bóveda y Persistencia PDF**:
+  - Preparar el modelo `Documento` para persistir metadatos de PDFs generados.
+  - Implementar el guardado automático de borradores en la estructura de carpetas (01_Altas_Bajas) una vez que el socio despliegue la Bóveda.
+  - ⚠️ **GitCoWork Safe**: Requiere coordinación por el nuevo modelo `Documento`.
 
 ---
 **Convención**

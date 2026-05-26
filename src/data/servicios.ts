@@ -2,6 +2,7 @@ export interface Procedimiento {
   id: string;
   nombre: string;
   plantillaId?: string;
+  pdfId?: string;
 }
 
 export interface Servicio {
@@ -21,7 +22,7 @@ const SERVICIOS_DATA: Servicio[] = [
     procedimientos: [
       { id: "alta-autonomo-integral", nombre: "Alta completa como autónomo taxista (paquete integral)", plantillaId: "bienvenida" },
       { id: "alta-reta", nombre: "Alta en Seguridad Social (RETA)" },
-      { id: "alta-037", nombre: "Alta censal en Hacienda (Modelo 037)" },
+      { id: "alta-037", nombre: "Alta censal en Hacienda (Modelo 036/037)", pdfId: "modelo-036" },
       { id: "alta-imet", nombre: "Comunicación de alta al IMET / Ayuntamiento" },
       { id: "tramites-vehiculares-inicio", nombre: "Coordinación de trámites vehiculares iniciales (DGT e ITV)" },
     ],

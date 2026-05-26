@@ -26,7 +26,12 @@ const ENLACES_EXTERNOS = [
   { label: "DGT · Trámites", url: "https://sede.dgt.gob.es/" },
 ];
 
-type AnotacionManual = { servicioId: string; procedimientoId: string; nombre: string };
+type AnotacionManual = { 
+  servicioId: string; 
+  procedimientoId: string; 
+  nombre: string;
+  pdfId?: string;
+};
 
 const servicios = getServicios();
 
@@ -58,6 +63,7 @@ export function ServiciosIndex() {
       servicioId: servicio.id,
       procedimientoId: proc.id,
       nombre: proc.nombre,
+      pdfId: proc.pdfId,
     });
     setServicioActivo(null);
   }

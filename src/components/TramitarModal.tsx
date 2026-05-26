@@ -9,10 +9,13 @@ import {
 import { rellenarPlantilla } from "@/lib/fillPlantilla";
 import { getClients } from "@/lib/actions/client";
 
+import { PdfForm } from "./PdfForm";
+
 interface ProcedimientoSinPlantilla {
   servicioId: string;
   procedimientoId: string;
   nombre: string;
+  pdfId?: string;
 }
 
 interface TramitarModalProps {
@@ -220,38 +223,47 @@ export function TramitarModal({ plantilla, procedimientoSinPlantilla, onClose }:
 
         {paso === "documento" && modoAnotacion && (
           <div className="flex flex-col overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100 text-blue-600 text-xs font-semibold">
-              <AlertTriangle size={14} />
-              ANOTACIÓN MANUAL · sin plantilla — escribe libremente
-            </div>
-            <div className="p-4 overflow-auto flex-1">
-              <textarea
-                autoFocus
-                value={anotacion}
-                onChange={(e) => setAnotacion(e.target.value)}
-                placeholder="Escribe aquí las notas o instrucciones para este trámite…"
-                className="w-full min-h-[200px] p-3 border border-gray-200 rounded-lg text-sm text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary"
+            {procedimientoSinPlantilla?.pdfId ? (
+              <PdfForm 
+                pdfId={procedimientoSinPlantilla.pdfId} 
+                cliente={cliente!} 
               />
-            </div>
-            <footer className="flex items-center justify-between gap-3 p-4 border-t border-gray-100">
-              <span className="text-xs text-gray-500">
-                Cliente: <strong>{cliente?.nombre}</strong>
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCliente(null)}
-                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Cambiar cliente
-                </button>
-                <button
-                  onClick={copiarAnotacion}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:opacity-90 transition"
-                >
-                  <Copy size={15} /> {copiado ? "Copiado ✓" : "Copiar texto"}
-                </button>
-              </div>
-            </footer>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100 text-blue-600 text-xs font-semibold">
+                  <AlertTriangle size={14} />
+                  ANOTACIÓN MANUAL · sin plantilla — escribe libremente
+                </div>
+                <div className="p-4 overflow-auto flex-1">
+                  <textarea
+                    autoFocus
+                    value={anotacion}
+                    onChange={(e) => setAnotacion(e.target.value)}
+                    placeholder="Escribe aquí las notas o instrucciones para este trámite…"
+                    className="w-full min-h-[200px] p-3 border border-gray-200 rounded-lg text-sm text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary"
+                  />
+                </div>
+                <footer className="flex items-center justify-between gap-3 p-4 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">
+                    Cliente: <strong>{cliente?.nombre}</strong>
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCliente(null)}
+                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      Cambiar cliente
+                    </button>
+                    <button
+                      onClick={copiarAnotacion}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:opacity-90 transition"
+                    >
+                      <Copy size={15} /> {copiado ? "Copiado ✓" : "Copiar texto"}
+                    </button>
+                  </div>
+                </footer>
+              </>
+            )}
           </div>
         )}
 

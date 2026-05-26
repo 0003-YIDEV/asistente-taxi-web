@@ -60,3 +60,21 @@ Stack: Next.js 16 App Router · React 19 · Tailwind v4 · Prisma · framer-moti
 - Sin secrets en commits verificado
 - db.ts sin trackear (contiene credenciales DB)
 - NIF/IBAN cifrados en BD (trabajo del socio, ya en schema)
+
+---
+
+## Post-sesión 2026-05-26 — GitCoWork
+
+### Commit adicional
+| Hash | Descripción |
+|------|-------------|
+| `b2a5559` | docs: añadir protocolo GitCoWork de coordinación equipo |
+
+### Archivos añadidos
+- `GITCOWORK.md` — protocolo de coordinación git para equipos con IA (agnóstico: Claude, Gemini, Copilot)
+
+### Decisión
+- Skill `gitcowork` creada en ZYRO/SKILLS/ como workflow recurrente
+- GITCOWORK.md en el repo para que el socio la descargue e instale en su Gemini
+- Protocolo basado en WORKING_ON.md como sistema de claiming de archivos + árbol de decisión de conflictos + ciclo entrada/cierre automatizado
+- Investigación de mercado: nicho sin competidor directo (tick-md es lo más cercano pero cubre tareas, no archivos)

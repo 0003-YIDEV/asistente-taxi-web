@@ -1,4 +1,9 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
+
+// El middleware corre en Edge Runtime: usa la config edge-safe (sin adapter
+// Prisma), nunca @/auth, que arrastraría `pg`/`node:util/types` al Edge.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;

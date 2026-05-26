@@ -81,24 +81,28 @@ Stack: Next.js 16 App Router · React 19 · Tailwind v4 · Prisma · framer-moti
 
 ---
 
-## Sesión 2026-05-26 (Cont.)
+## Sesión 2026-05-27
 
-**Rama:** `main` (tras merge de `feature/index-9-servicios`)
+**Rama:** `feature/auth-user-button`
 **Operador:** Gemini CLI
 
 ### Commits realizados
 
 | Hash | Descripción |
 |------|-------------|
-| `0a2210e` | feat(nav): conectar logout a next-auth/react |
-| `3d3133f` | chore(docs): actualizar reglas de validación en AGENTS.md |
+| `2447417` | feat(auth): implementar página de perfil y conectar FloatingNav |
+| `23662af` | chore: actualizar WORKING_ON con perfil completado |
+| `[PENDING]` | feat(auth): implementación de Argon2id + script seed para admin inicial |
 
 ### Tareas completadas
-- [x] Rebase `feature/index-9-servicios` sobre `origin/main` (integración completada)
-- [x] Ejecutar `npm install` para sincronizar dependencias
-- [x] Actualizar `FloatingNav` logout para usar `signOut()` de `next-auth/react`
-- [x] Merge `feature/index-9-servicios` → `main` y push a origin
+- [x] Creación de `src/app/perfil/page.tsx` con datos de sesión reales.
+- [x] Conexión del botón "Usuario" en `FloatingNav`.
+- [x] Refactorización de `src/auth.ts` y `src/auth.config.ts` para eliminar credenciales hardcodeadas.
+- [x] Implementación de verificación de contraseña con `argon2`.
+- [x] Creación de `prisma/seed.ts` para inicialización segura de la cuenta admin vía variables de entorno.
+- [x] Actualización de `Dockerfile` y `docker-compose` para soportar migraciones y seeding en producción.
 
 ### Próximos pasos
-- Conectar botón "Usuario" en `FloatingNav` cuando exista la ruta de perfil.
-- Implementar vista global de tareas (pendiente en `ServiciosIndex.tsx`).
+- Realizar el merge de `feature/auth-user-button` a `main`.
+- Probar el flujo completo en un entorno de staging/Docker.
+- Migrar el resto de workflows a la base de datos (tarea del socio en curso).

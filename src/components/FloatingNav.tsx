@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BookOpen, UserCircle, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 export function FloatingNav() {
   return (
@@ -26,11 +27,11 @@ export function FloatingNav() {
         <span className="hidden sm:inline">Usuario</span>
       </button>
 
-      {/* Cerrar sesión (placeholder hasta auth) */}
+      {/* Cerrar sesión */}
       <button
-        disabled
-        className="p-2.5 rounded-full bg-white border border-gray-200 shadow-lg text-gray-400 cursor-not-allowed opacity-60"
-        title="Cerrar sesión (próximamente)"
+        onClick={() => signOut()}
+        className="p-2.5 rounded-full bg-white border border-gray-200 shadow-lg text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200"
+        title="Cerrar sesión"
       >
         <LogOut size={15} />
       </button>

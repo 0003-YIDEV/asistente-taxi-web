@@ -14,6 +14,7 @@ git pull origin main
 
 # 2. Levantar servicios con Docker Compose
 echo "🏗️ Construyendo y levantando contenedores..."
+docker compose -f docker-compose.prod.yml down --remove-orphans
 docker compose -f docker-compose.prod.yml up --build -d
 
 # 3. Aplicar migraciones de base de datos

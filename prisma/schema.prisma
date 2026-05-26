@@ -120,3 +120,51 @@ model AuditLog {
   @@index([ts])
   @@index([entity, entityId])
 }
+
+// ───────────────────────── Guía de procedimientos (plantillas editables) ─────────────────────────
+// Fuente de la guía visual /procedimientos y base para la automatización (instancias futuras).
+model Workflow {
+  id            String  @id // id legible: "alta-reta"
+  servicioId    String // enlaza con los 9 servicios
+  nombre        String
+  refManual     String
+  esOrquestador Boolean @default(false)
+  orden         Int     @default(0) // orden dentro del servicio
+
+  // Meta (campos planos = fáciles de editar en formulario)
+  metaPortal         String?
+  metaIdentificacion String?
+  metaPlazo          String?
+  metaBaseNormativa  String?
+  metaResultado      String?
+
+  // Listas simples (arrays nativos de Postgres, editables como lista de texto)
+  gateEntrada  String[]
+  inputs       String[]
+  post         String[]
+  excepciones  String[]
+  autoPuede    String[]
+  autoAsistido String[]
+  autoNoPuede  String[]
+  outputs      Json // [{ artefacto, carpeta }]
+
+  pasos     WorkflowPaso[]
+  updatedAt DateTime       @updatedAt
+  createdAt DateTime       @default(now())
+
+  @@index([servicioId])
+}
+
+model WorkflowPaso {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  orden       Int // para reordenar pasos
+  accion      String
+  validacion  String?
+  nivel       String // "auto" | "asistido" | "humano"
+  gate        String?
+  refWorkflow String?
+
+  @@index([workflowId])
+}

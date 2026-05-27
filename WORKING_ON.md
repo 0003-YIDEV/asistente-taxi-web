@@ -67,6 +67,11 @@ Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpet
 - **Apartado tipo "Drive" por cliente**: selector de cliente + repositorio (subir, ver,
   actualizar, organizar) con estructura de carpetas 00–99.
 - **OCR** (fase posterior): extraer datos de los documentos subidos.
+- **Papelera — auto-purga (feature FUTURA, cuando llevemos tiempo)**: hoy la papelera es
+  100% manual (restaurar / borrar definitivo / vaciar), sin límite de tiempo. Decisión:
+  NO auto-borrar de momento (RGPD: riesgo de purgar docs de trámites vivos). Cuando exista
+  el planificador de tareas (el mismo del motor de alertas T-15/7/1), añadir purga ASISTIDA:
+  resaltar items con +30 días en papelera, borrado a un clic — nunca automático sin aviso.
 - ⚠️ **Restricciones RGPD no negociables**:
   - Documentos **cifrados en reposo** (mismo patrón que NIF/IBAN en `fieldEncryption`).
   - OCR **LOCAL** (Tesseract o similar), NUNCA servicio externo / LLM de consumo:

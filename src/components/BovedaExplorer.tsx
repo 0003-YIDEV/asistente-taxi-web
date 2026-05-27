@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Folder, FileText, FileImage, File as FileIcon, Upload, FolderPlus, Search,
   LayoutGrid, List, Download, Trash2, Pencil, Home, X, Loader2, ChevronRight,
-  FolderInput, SlidersHorizontal, Eye,
+  FolderInput, SlidersHorizontal, Eye, RotateCcw,
 } from "lucide-react";
 import { ClientesSidebar } from "@/components/ClientesSidebar";
 import {
@@ -13,6 +13,8 @@ import {
   borrarDocumento, crearCarpeta, renombrarCarpeta, borrarCarpeta,
   renombrarDocumento, buscar, moverDocumento, moverCarpeta,
   listarTodasCarpetas, editarMetaDocumento, listarWorkflowsParaVincular,
+  listarPapelera, restaurarDocumento, restaurarCarpeta,
+  eliminarDefinitivoDocumento, eliminarDefinitivoCarpeta, vaciarPapelera,
 } from "@/lib/actions/boveda";
 
 type DragItem = { tipo: "doc" | "carpeta"; id: string };
@@ -25,6 +27,10 @@ type Documento = {
   workflow?: { nombre: string } | null;
 };
 type WfLink = { id: string; nombre: string };
+type PapeleraData = {
+  carpetas: { id: string; nombre: string; parentId: string | null }[];
+  documentos: { id: string; nombre: string; mime: string; carpetaId: string | null }[];
+};
 
 function iconoDe(mime: string, size = 18) {
   if (mime === "application/pdf") return <FileText size={size} className="text-red-500" />;
@@ -61,6 +67,8 @@ export function BovedaExplorer() {
   const [confirmState, setConfirmState] = useState<
     { mensaje: string; onOk: () => void | Promise<void> } | null
   >(null);
+  const [papelera, setPapelera] = useState<PapeleraData | null>(null); // null = cerrada
+  const [papeleraCargando, setPapeleraCargando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carpetaActual = ruta[ruta.length - 1].id;
@@ -224,7 +232,7 @@ export function BovedaExplorer() {
   }
   function eliminarCarpeta(c: Carpeta) {
     setConfirmState({
-      mensaje: `¿Borrar la carpeta "${c.nombre}"? Debe estar vacía.`,
+      mensaje: `¿Mover la carpeta "${c.nombre}" y todo su contenido a la papelera? Podrás restaurarla.`,
       onOk: async () => { if (!clientId) return; await borrarCarpeta(c.id); await cargar(clientId, carpetaActual); },
     });
   }
@@ -236,7 +244,7 @@ export function BovedaExplorer() {
   }
   function eliminarDoc(d: Documento) {
     setConfirmState({
-      mensaje: `¿Borrar "${d.nombre}"? Esta acción es permanente.`,
+      mensaje: `¿Mover "${d.nombre}" a la papelera? Podrás restaurarlo.`,
       onOk: async () => { if (!clientId) return; await borrarDocumento(d.id); await cargar(clientId, carpetaActual); },
     });
   }
@@ -246,6 +254,51 @@ export function BovedaExplorer() {
       onOk: async (n) => { if (!clientId) return; await renombrarDocumento(d.id, n); await cargar(clientId, carpetaActual); },
     });
   }
+  // ── Papelera ──
+  async function abrirPapelera() {
+    if (!clientId) return;
+    setPapeleraCargando(true);
+    try {
+      setPapelera((await listarPapelera(clientId)) as PapeleraData);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al abrir la papelera");
+    } finally {
+      setPapeleraCargando(false);
+    }
+  }
+  async function recargarPapelera() {
+    if (!clientId) return;
+    setPapelera((await listarPapelera(clientId)) as PapeleraData);
+    await cargar(clientId, carpetaActual);
+  }
+  async function restaurarDoc(docId: string) {
+    await restaurarDocumento(docId);
+    await recargarPapelera();
+  }
+  async function restaurarCarp(carpId: string) {
+    await restaurarCarpeta(carpId);
+    await recargarPapelera();
+  }
+  function eliminarDefDoc(d: { id: string; nombre: string }) {
+    setConfirmState({
+      mensaje: `¿Borrar definitivamente "${d.nombre}"? Esto NO se puede deshacer.`,
+      onOk: async () => { await eliminarDefinitivoDocumento(d.id); await recargarPapelera(); },
+    });
+  }
+  function eliminarDefCarp(c: { id: string; nombre: string }) {
+    setConfirmState({
+      mensaje: `¿Borrar definitivamente la carpeta "${c.nombre}" y todo su contenido? Esto NO se puede deshacer.`,
+      onOk: async () => { await eliminarDefinitivoCarpeta(c.id); await recargarPapelera(); },
+    });
+  }
+  function vaciar() {
+    if (!clientId) return;
+    setConfirmState({
+      mensaje: "¿Vaciar la papelera? Se borrará TODO su contenido de forma permanente.",
+      onOk: async () => { await vaciarPapelera(clientId); await recargarPapelera(); },
+    });
+  }
+
   async function ejecutarBusqueda() {
     if (!clientId) return;
     if (!q.trim()) {
@@ -316,6 +369,9 @@ export function BovedaExplorer() {
               </button>
               <button onClick={nuevaCarpeta} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
                 <FolderPlus size={15} /> Carpeta
+              </button>
+              <button onClick={abrirPapelera} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50" title="Papelera">
+                <Trash2 size={15} /> Papelera
               </button>
               <button onClick={() => inputRef.current?.click()} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-sm font-semibold hover:opacity-90">
                 <Upload size={15} /> Subir
@@ -599,6 +655,45 @@ export function BovedaExplorer() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal Papelera */}
+      {papelera && (
+        <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4" onClick={() => setPapelera(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="flex items-center gap-2 text-sm font-bold text-gray-900"><Trash2 size={16} className="text-gray-400" /> Papelera</span>
+              <div className="flex items-center gap-2">
+                {(papelera.carpetas.length > 0 || papelera.documentos.length > 0) && (
+                  <button onClick={vaciar} className="text-xs font-semibold text-red-600 hover:underline">Vaciar papelera</button>
+                )}
+                <button onClick={() => setPapelera(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-2 flex flex-col gap-1">
+              {papeleraCargando && <div className="flex items-center gap-2 text-sm text-gray-400 p-3"><Loader2 size={14} className="animate-spin" /> Cargando…</div>}
+              {!papeleraCargando && papelera.carpetas.length === 0 && papelera.documentos.length === 0 && (
+                <p className="text-sm text-gray-400 p-6 text-center">La papelera está vacía.</p>
+              )}
+              {papelera.carpetas.map((c) => (
+                <div key={c.id} className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                  <Folder size={18} className="text-amber-500 shrink-0" />
+                  <span className="text-sm text-gray-800 truncate flex-1">{c.nombre} <span className="text-[10px] text-gray-400">(carpeta + contenido)</span></span>
+                  <button onClick={() => restaurarCarp(c.id)} className="p-1 text-gray-400 hover:text-green-600" title="Restaurar"><RotateCcw size={15} /></button>
+                  <button onClick={() => eliminarDefCarp(c)} className="p-1 text-gray-400 hover:text-red-600" title="Borrar definitivamente"><Trash2 size={15} /></button>
+                </div>
+              ))}
+              {papelera.documentos.map((d) => (
+                <div key={d.id} className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50">
+                  {iconoDe(d.mime, 18)}
+                  <span className="text-sm text-gray-800 truncate flex-1">{d.nombre}</span>
+                  <button onClick={() => restaurarDoc(d.id)} className="p-1 text-gray-400 hover:text-green-600" title="Restaurar"><RotateCcw size={15} /></button>
+                  <button onClick={() => eliminarDefDoc(d)} className="p-1 text-gray-400 hover:text-red-600" title="Borrar definitivamente"><Trash2 size={15} /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de entrada de texto (sustituye a window.prompt) */}

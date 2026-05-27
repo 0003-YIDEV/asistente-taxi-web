@@ -116,6 +116,8 @@ model Carpeta {
 
   nombre String
 
+  eliminadoEn DateTime? // null = activa · fecha = en la papelera (borrado recuperable)
+
   client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   parent     Carpeta?    @relation("ArbolCarpetas", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   hijos      Carpeta[]   @relation("ArbolCarpetas")
@@ -125,6 +127,7 @@ model Carpeta {
   updatedAt DateTime @updatedAt
 
   @@index([clientId, parentId])
+  @@index([clientId, eliminadoEn])
 }
 
 model Documento {
@@ -144,6 +147,7 @@ model Documento {
   fechaVencimiento DateTime? // caducidad (ITV, seguro, licencia, apoderamiento REGAP…)
   descripcion      String?
   workflowId       String? // vínculo opcional a un trámite de la Guía
+  eliminadoEn      DateTime? // null = activo · fecha = en la papelera (borrado recuperable)
 
   client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   carpeta  Carpeta?  @relation(fields: [carpetaId], references: [id], onDelete: SetNull)
@@ -155,6 +159,7 @@ model Documento {
   @@index([clientId, carpetaId])
   @@index([clientId, hashSha256]) // detección de duplicados
   @@index([clientId, fechaVencimiento]) // consultas de vencimientos
+  @@index([clientId, eliminadoEn]) // papelera
 }
 
 // --- Log de auditoría append-only (cadena de hash: lógica en R1.3) ---

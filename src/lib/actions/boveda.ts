@@ -49,14 +49,14 @@ async function carpetaDe(carpetaId: string, userId: string) {
 export async function listarCarpetas(clientId: string, parentId: string | null = null) {
   const { id } = await sesion();
   await assertCliente(clientId, id);
-  return db.carpeta.findMany({ where: { clientId, parentId }, orderBy: { nombre: "asc" } });
+  return db.carpeta.findMany({ where: { clientId, parentId, eliminadoEn: null }, orderBy: { nombre: "asc" } });
 }
 
 export async function listarDocumentos(clientId: string, carpetaId: string | null = null) {
   const { id } = await sesion();
   await assertCliente(clientId, id);
   return db.documento.findMany({
-    where: { clientId, carpetaId },
+    where: { clientId, carpetaId, eliminadoEn: null },
     orderBy: { nombre: "asc" },
     include: { workflow: { select: { nombre: true } } },
   });
@@ -66,7 +66,7 @@ export async function listarDocumentos(clientId: string, carpetaId: string | nul
 export async function listarTodasCarpetas(clientId: string) {
   const { id } = await sesion();
   await assertCliente(clientId, id);
-  return db.carpeta.findMany({ where: { clientId }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, parentId: true } });
+  return db.carpeta.findMany({ where: { clientId, eliminadoEn: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, parentId: true } });
 }
 
 export async function buscar(clientId: string, filtros: { texto?: string; estado?: string; mime?: string }) {
@@ -75,6 +75,7 @@ export async function buscar(clientId: string, filtros: { texto?: string; estado
   return db.documento.findMany({
     where: {
       clientId,
+      eliminadoEn: null,
       ...(filtros.texto ? { nombre: { contains: filtros.texto, mode: "insensitive" } } : {}),
       ...(filtros.estado ? { estado: filtros.estado } : {}),
       ...(filtros.mime ? { mime: { startsWith: filtros.mime } } : {}),
@@ -101,7 +102,7 @@ export async function subirDocumento(clientId: string, carpetaId: string | null,
   const hash = sha256(buf);
 
   // Detección de duplicados (mismo cliente, mismo contenido)
-  const dup = await db.documento.findFirst({ where: { clientId, hashSha256: hash }, select: { id: true, nombre: true } });
+  const dup = await db.documento.findFirst({ where: { clientId, hashSha256: hash, eliminadoEn: null }, select: { id: true, nombre: true } });
   if (dup) return { ok: false as const, duplicado: true, nombreExistente: dup.nombre };
 
   const saved = saveEncrypted(clientId, buf);
@@ -130,12 +131,12 @@ export async function descargarDocumento(documentoId: string) {
   return { nombre: doc.nombre, mime: doc.mime, base64: buf.toString("base64") };
 }
 
+// Borrado RECUPERABLE: el documento va a la papelera (no se toca el fichero cifrado).
 export async function borrarDocumento(documentoId: string) {
   const { id, email } = await sesion();
   const doc = await docDe(documentoId, id);
-  deleteFile(doc.rutaRelativa);
-  await db.documento.delete({ where: { id: doc.id } });
-  await appendAudit({ actorId: id, actorEmail: email, action: "DOC_DELETE", entity: "Documento", entityId: doc.id, meta: { clientId: doc.clientId, nombre: doc.nombre } });
+  await db.documento.update({ where: { id: doc.id }, data: { eliminadoEn: new Date() } });
+  await appendAudit({ actorId: id, actorEmail: email, action: "DOC_TRASH", entity: "Documento", entityId: doc.id, meta: { clientId: doc.clientId, nombre: doc.nombre } });
   revalidatePath("/boveda");
 }
 
@@ -204,7 +205,7 @@ export async function documentosPorVencer(clientId: string, dias = 30) {
   const limite = new Date();
   limite.setDate(limite.getDate() + dias);
   return db.documento.findMany({
-    where: { clientId, fechaVencimiento: { not: null, lte: limite } },
+    where: { clientId, eliminadoEn: null, fechaVencimiento: { not: null, lte: limite } },
     orderBy: { fechaVencimiento: "asc" },
     select: { id: true, nombre: true, fechaVencimiento: true, carpetaId: true },
   });
@@ -254,16 +255,154 @@ export async function moverCarpeta(carpetaId: string, nuevoParentId: string | nu
   revalidatePath("/boveda");
 }
 
+// Devuelve los ids de toda la rama (la carpeta + descendientes), incluida la raíz.
+// Recorre TODO el árbol (sin filtrar por papelera) para arrastrar/restaurar la rama completa.
+async function idsSubarbol(clientId: string, raizId: string): Promise<string[]> {
+  const todas = await db.carpeta.findMany({ where: { clientId }, select: { id: true, parentId: true } });
+  const hijosDe = new Map<string, string[]>();
+  for (const c of todas) {
+    const arr = hijosDe.get(c.parentId ?? "") ?? [];
+    arr.push(c.id);
+    hijosDe.set(c.parentId ?? "", arr);
+  }
+  const acc: string[] = [];
+  const pila = [raizId];
+  while (pila.length) {
+    const cur = pila.pop()!;
+    acc.push(cur);
+    for (const h of hijosDe.get(cur) ?? []) pila.push(h);
+  }
+  return acc;
+}
+
+// Borrado RECUPERABLE: la carpeta y TODO su subárbol (subcarpetas + documentos) van a la
+// papelera. Estilo Drive: borrar una carpeta arrastra su contenido. Nada se borra de disco.
 export async function borrarCarpeta(carpetaId: string) {
   const { id, email } = await sesion();
   const f = await carpetaDe(carpetaId, id);
-  const [hijos, docs] = await Promise.all([
-    db.carpeta.count({ where: { parentId: carpetaId } }),
-    db.documento.count({ where: { carpetaId } }),
+  const rama = await idsSubarbol(f.clientId, f.id);
+  const ahora = new Date();
+  await db.$transaction([
+    db.carpeta.updateMany({ where: { id: { in: rama }, eliminadoEn: null }, data: { eliminadoEn: ahora } }),
+    db.documento.updateMany({ where: { carpetaId: { in: rama }, eliminadoEn: null }, data: { eliminadoEn: ahora } }),
   ]);
-  if (hijos > 0 || docs > 0) throw new Error("La carpeta no está vacía. Vacíala antes de borrarla.");
-  await db.carpeta.delete({ where: { id: f.id } });
-  await appendAudit({ actorId: id, actorEmail: email, action: "FOLDER_DELETE", entity: "Carpeta", entityId: f.id, meta: { clientId: f.clientId } });
+  await appendAudit({ actorId: id, actorEmail: email, action: "FOLDER_TRASH", entity: "Carpeta", entityId: f.id, meta: { clientId: f.clientId, ramaCount: rama.length } });
+  revalidatePath("/boveda");
+}
+
+// ── Papelera ───────────────────────────────────────────────────────
+// Lista las eliminaciones "de nivel superior" del cliente: documentos cuya carpeta NO está
+// también en la papelera, y carpetas cuyo padre NO está también en la papelera. Así no se
+// muestran los hijos arrastrados por el borrado de una carpeta (se restauran con su rama).
+export async function listarPapelera(clientId: string) {
+  const { id } = await sesion();
+  await assertCliente(clientId, id);
+
+  const [carpetas, documentos] = await Promise.all([
+    db.carpeta.findMany({
+      where: { clientId, eliminadoEn: { not: null } },
+      orderBy: { eliminadoEn: "desc" },
+      select: { id: true, nombre: true, parentId: true, eliminadoEn: true },
+    }),
+    db.documento.findMany({
+      where: { clientId, eliminadoEn: { not: null } },
+      orderBy: { eliminadoEn: "desc" },
+      select: { id: true, nombre: true, mime: true, carpetaId: true, eliminadoEn: true },
+    }),
+  ]);
+
+  const carpetasBorradas = new Set(carpetas.map((c) => c.id));
+  return {
+    carpetas: carpetas.filter((c) => !c.parentId || !carpetasBorradas.has(c.parentId)),
+    documentos: documentos.filter((d) => !d.carpetaId || !carpetasBorradas.has(d.carpetaId)),
+  };
+}
+
+export async function restaurarDocumento(documentoId: string) {
+  const { id, email } = await sesion();
+  const doc = await docDe(documentoId, id);
+  // Si su carpeta ya no existe o sigue en la papelera, lo devolvemos a la raíz (sin huérfanos).
+  let destino = doc.carpetaId;
+  if (destino) {
+    const c = await db.carpeta.findUnique({ where: { id: destino }, select: { eliminadoEn: true } });
+    if (!c || c.eliminadoEn) destino = null;
+  }
+  await db.documento.update({ where: { id: doc.id }, data: { eliminadoEn: null, carpetaId: destino } });
+  await appendAudit({ actorId: id, actorEmail: email, action: "DOC_RESTORE", entity: "Documento", entityId: doc.id, meta: { clientId: doc.clientId } });
+  revalidatePath("/boveda");
+}
+
+export async function restaurarCarpeta(carpetaId: string) {
+  const { id, email } = await sesion();
+  const f = await carpetaDe(carpetaId, id);
+  const rama = await idsSubarbol(f.clientId, f.id);
+  // Si su padre sigue en la papelera (o no existe), la carpeta vuelve a la raíz.
+  let nuevoParent = f.parentId;
+  if (nuevoParent) {
+    const p = await db.carpeta.findUnique({ where: { id: nuevoParent }, select: { eliminadoEn: true } });
+    if (!p || p.eliminadoEn) nuevoParent = null;
+  }
+  await db.$transaction([
+    db.carpeta.update({ where: { id: f.id }, data: { parentId: nuevoParent } }),
+    db.carpeta.updateMany({ where: { id: { in: rama } }, data: { eliminadoEn: null } }),
+    db.documento.updateMany({ where: { carpetaId: { in: rama } }, data: { eliminadoEn: null } }),
+  ]);
+  await appendAudit({ actorId: id, actorEmail: email, action: "FOLDER_RESTORE", entity: "Carpeta", entityId: f.id, meta: { clientId: f.clientId, ramaCount: rama.length } });
+  revalidatePath("/boveda");
+}
+
+// Borrado DEFINITIVO de un documento: elimina el fichero cifrado del disco y la fila.
+export async function eliminarDefinitivoDocumento(documentoId: string) {
+  const { id, email } = await sesion();
+  const doc = await docDe(documentoId, id);
+  deleteFile(doc.rutaRelativa);
+  await db.documento.delete({ where: { id: doc.id } });
+  await appendAudit({ actorId: id, actorEmail: email, action: "DOC_DELETE", entity: "Documento", entityId: doc.id, meta: { clientId: doc.clientId, nombre: doc.nombre } });
+  revalidatePath("/boveda");
+}
+
+// Borrado DEFINITIVO de una carpeta: borra los ficheros de su rama, sus documentos y las carpetas.
+export async function eliminarDefinitivoCarpeta(carpetaId: string) {
+  const { id, email } = await sesion();
+  const f = await carpetaDe(carpetaId, id);
+  const rama = await idsSubarbol(f.clientId, f.id);
+  const docs = await db.documento.findMany({ where: { carpetaId: { in: rama } }, select: { rutaRelativa: true } });
+  for (const d of docs) deleteFile(d.rutaRelativa);
+  await db.$transaction([
+    db.documento.deleteMany({ where: { carpetaId: { in: rama } } }),
+    // Borrar de hoja a raíz para no violar la FK self-relation (NoAction).
+    ...rama.reverse().map((cid) => db.carpeta.delete({ where: { id: cid } })),
+  ]);
+  await appendAudit({ actorId: id, actorEmail: email, action: "FOLDER_DELETE", entity: "Carpeta", entityId: f.id, meta: { clientId: f.clientId, ramaCount: rama.length } });
+  revalidatePath("/boveda");
+}
+
+// Vacía la papelera del cliente: borra definitivamente todo lo que esté en ella.
+export async function vaciarPapelera(clientId: string) {
+  const { id, email } = await sesion();
+  await assertCliente(clientId, id);
+  const docs = await db.documento.findMany({
+    where: { clientId, eliminadoEn: { not: null } },
+    select: { rutaRelativa: true },
+  });
+  for (const d of docs) deleteFile(d.rutaRelativa);
+  // Carpetas en papelera ordenadas por profundidad (hoja → raíz) para respetar la FK.
+  const carpetas = await db.carpeta.findMany({
+    where: { clientId, eliminadoEn: { not: null } },
+    select: { id: true, parentId: true },
+  });
+  const profundidad = (cid: string): number => {
+    let d = 0, cur: string | null = cid;
+    const byId = new Map(carpetas.map((c) => [c.id, c.parentId]));
+    while (cur && byId.has(cur)) { cur = byId.get(cur) ?? null; d++; }
+    return d;
+  };
+  const ordenadas = carpetas.map((c) => c.id).sort((a, b) => profundidad(b) - profundidad(a));
+  await db.$transaction([
+    db.documento.deleteMany({ where: { clientId, eliminadoEn: { not: null } } }),
+    ...ordenadas.map((cid) => db.carpeta.delete({ where: { id: cid } })),
+  ]);
+  await appendAudit({ actorId: id, actorEmail: email, action: "TRASH_EMPTY", entity: "Client", entityId: clientId, meta: { docs: docs.length, carpetas: ordenadas.length } });
   revalidatePath("/boveda");
 }
 

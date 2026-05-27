@@ -22,6 +22,12 @@ no contabilidad de doble partida (un taxista en módulos no lleva contabilidad).
   **extracción inteligente (C)** → luego **agente que ejecuta (B)**.
 - **Orden de arranque:** tras los fundamentos (Etapa 0), **IA primero** (OCR + Copiloto A);
   el núcleo fiscal va justo después.
+- **Stack de IA (council 2026-05-27, ver `COUNCIL-STACK-IA.md`):** capa **agnóstica de
+  proveedor con enrutado por sensibilidad**. Asistente guiado (no-sensible) → **API europea**
+  (Mistral recomendado; proveedor final por decidir). Extracción sensible → **encargado UE
+  con DPA** (IONOS), con datos de salud enrutados aparte (anonimizar o auto-alojar). Auto-alojar
+  (Ollama+Qwen) = meta futura, no requisito de arranque. Condiciones: DPA antes de datos reales,
+  DPIA antes de extracción sensible, revisión humana de toda salida con efecto fiscal.
 - **RGPD (no negociable):** cero datos reales de clientes en LLM de consumo; OCR local;
   nunca custodiar certificados/Cl@ve; cifrado en reposo + audit log (ya implementados).
 
@@ -56,8 +62,8 @@ no contabilidad de doble partida (un taxista en módulos no lleva contabilidad).
   Extrae texto de cualquier documento subido a la Bóveda. 100% local (RGPD).
   *Base sobre la que se monta la Etapa 3 (C).*
 - **Copiloto A** — chat que asesora usando el **manual + los 39 workflows en BD**, RAG
-  sobre `pgvector`, Claude API en modo **zero-retention / sin entrenamiento**.
-  **Cero datos de cliente.** Copiloto interno para los asesores.
+  sobre `pgvector`, vía **API europea** (Mistral recomendado por el council; proveedor por
+  decidir), a través de la **capa agnóstica**. **Cero datos de cliente.** Copiloto interno.
 
 ### Etapa 2 · Núcleo fiscal (el valor del 80%)
 - **Libros-registro** — modelo `Movimiento` (ingreso/gasto/inversión), enlazado al
@@ -96,14 +102,14 @@ no contabilidad de doble partida (un taxista en módulos no lleva contabilidad).
 
 - `pgvector` (extensión Postgres) · `Tesseract.js` + `pdf-parse` (OCR local) ·
   worker cron (`node-cron` o contenedor programado) · email (Resend/SMTP) ·
-  SDK de Anthropic (Claude, zero-retention).
+  **capa agnóstica de IA** sobre API UE (Mistral/IONOS) + opción Ollama+Qwen auto-alojado (futuro).
 
 ## Riesgos / notas RGPD
 
 - DPIA antes del primer dato real (hay datos de salud: mutua).
-- IA: documentos con NIF/datos sensibles → OCR y estructuración **locales**; si se usa
-  Claude API, solo con DPA + zero-retention y **nunca** con datos identificativos crudos
-  salvo necesidad justificada y minimizada.
+- IA: documentos con NIF/datos sensibles → encargado UE con DPA o auto-alojado; datos de
+  salud (mutua, Art. 9) enrutados aparte (anonimizar o local). DPA antes de datos reales,
+  DPIA antes de extracción sensible. Asistente guiado (no-sensible) → API UE sin problema.
 - Verificar/renovar apoderamientos REGAP anteriores a abril-2021 (caducaron abril 2026).
 
 ## Cómo retomar

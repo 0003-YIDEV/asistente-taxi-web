@@ -24,19 +24,26 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - ✅ **Fase 3 (lectura desde BD)**: `src/lib/workflows-db.ts` (`getWorkflowsFromDB`,
   fallback al .ts si BD vacía); `procedimientos/page.tsx` ahora es server component async
   que lee de BD; `ProcedimientosViewer` recibe `workflows` por props. Validado: 37 wf.
-- 🔵 **Fase 4-5 (en curso)**: server actions de escritura (CRUD pasos/URLs) + UI de edición
-  inline en `/procedimientos` (modo edición, **solo rol admin**). Ya creado:
-  `src/lib/actions/workflows.ts` (`updateWorkflow`, guard `requireAdmin`). Falta `canEdit`
-  en la page + UI de edición en `ProcedimientosViewer`.
+- ✅ **Fase 4 (editor inline) — COMPLETADA**: `src/lib/actions/workflows.ts`
+  (`updateWorkflow`, guard `requireAdmin`), `canEdit` en la page, UI de edición inline en
+  `ProcedimientosViewer` + `WorkflowEditor.tsx` (meta, pasos add/borrar/reordenar, listas).
+  **Smoke test PASADO** (Playwright, sesión admin): editar → guardar → persiste en BD →
+  UI refleja. En main: `57ceb78`.
 - ⚠️ **Deploy prod pendiente** (coordinar): `migrate resolve --applied 20260526225631_add_client_checklist`
   + `migrate deploy` + seed. BACKUP de la BD antes.
 
-### 🔭 Siguiente fase declarada (DESPUÉS del editor) — Bóveda documental por cliente
-- **Apartado tipo "Drive" por cliente**: selector de cliente + repositorio de documentos
-  asociados (subir, ver, actualizar, organizar). Encaja con el modelo `Documento`
-  (estructura de carpetas 00–99) ya previsto en la arquitectura.
+### 🟢 Bóveda documental por cliente — EN CURSO (la cojo yo, Zyro/Claude)
+⚠️ **COORDINACIÓN @0003-YIDEV**: tú declaraste que esperas el modelo `Documento` para
+persistir metadatos de PDFs (Modelo 036) y guardar borradores en la estructura de carpetas.
+**Yo diseño el modelo `Documento` + la estructura.** Antes de tocar `schema.prisma` lo
+acuerdo aquí. Propuesta de campos que cubre tu caso (PDF generado → Documento):
+`id, clientId (FK), categoria (00–99), nombre, mime, tamañoBytes, rutaCifrada, hashSha256,
+origen (subido|generado), refModelo (ej. "036"), createdAt`. Si necesitas más campos para
+tus PDFs, dilo aquí y los incluyo antes de migrar.
+- **Apartado tipo "Drive" por cliente**: selector de cliente + repositorio (subir, ver,
+  actualizar, organizar) con estructura de carpetas 00–99.
 - **OCR** (fase posterior): extraer datos de los documentos subidos.
-- ⚠️ **Restricciones RGPD no negociables** (heredadas del proyecto):
+- ⚠️ **Restricciones RGPD no negociables**:
   - Documentos **cifrados en reposo** (mismo patrón que NIF/IBAN en `fieldEncryption`).
   - OCR **LOCAL** (Tesseract o similar), NUNCA servicio externo / LLM de consumo:
     los docs llevan NIF y datos de salud (mutua). Cero datos reales de clientes en LLM.

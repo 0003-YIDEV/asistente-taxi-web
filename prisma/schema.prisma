@@ -132,25 +132,29 @@ model Documento {
   clientId  String
   carpetaId String? // null = raíz del cliente
 
-  nombre         String
-  mime           String
-  tamanoBytes    Int
-  rutaRelativa   String    @unique // ruta plana del fichero cifrado en STORAGE_DIR (UUID)
-  hashSha256     String // integridad del contenido en claro
-  origen         String    @default("subido") // "subido" | "generado"
-  refModelo      String? // p.ej. "036" si lo generó el flujo de PDF del socio
-  estado         String    @default("definitivo") // "borrador" | "definitivo"
-  fechaDocumento DateTime? // fecha real del documento (no la de subida)
-  descripcion    String?
+  nombre           String
+  mime             String
+  tamanoBytes      Int
+  rutaRelativa     String    @unique // ruta plana del fichero cifrado en STORAGE_DIR (UUID)
+  hashSha256       String // integridad del contenido en claro
+  origen           String    @default("subido") // "subido" | "generado"
+  refModelo        String? // p.ej. "036" si lo generó el flujo de PDF del socio
+  estado           String    @default("definitivo") // "borrador" | "definitivo"
+  fechaDocumento   DateTime? // fecha real del documento (no la de subida)
+  fechaVencimiento DateTime? // caducidad (ITV, seguro, licencia, apoderamiento REGAP…)
+  descripcion      String?
+  workflowId       String? // vínculo opcional a un trámite de la Guía
 
-  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  carpeta Carpeta? @relation(fields: [carpetaId], references: [id], onDelete: SetNull)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  carpeta  Carpeta?  @relation(fields: [carpetaId], references: [id], onDelete: SetNull)
+  workflow Workflow? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clientId, carpetaId])
   @@index([clientId, hashSha256]) // detección de duplicados
+  @@index([clientId, fechaVencimiento]) // consultas de vencimientos
 }
 
 // --- Log de auditoría append-only (cadena de hash: lógica en R1.3) ---
@@ -197,9 +201,10 @@ model Workflow {
   autoNoPuede  String[]
   outputs      Json // [{ artefacto, carpeta }]
 
-  pasos     WorkflowPaso[]
-  updatedAt DateTime       @updatedAt
-  createdAt DateTime       @default(now())
+  pasos      WorkflowPaso[]
+  documentos Documento[]
+  updatedAt  DateTime       @updatedAt
+  createdAt  DateTime       @default(now())
 
   @@index([servicioId])
 }

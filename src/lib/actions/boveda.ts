@@ -55,7 +55,11 @@ export async function listarCarpetas(clientId: string, parentId: string | null =
 export async function listarDocumentos(clientId: string, carpetaId: string | null = null) {
   const { id } = await sesion();
   await assertCliente(clientId, id);
-  return db.documento.findMany({ where: { clientId, carpetaId }, orderBy: { nombre: "asc" } });
+  return db.documento.findMany({
+    where: { clientId, carpetaId },
+    orderBy: { nombre: "asc" },
+    include: { workflow: { select: { nombre: true } } },
+  });
 }
 
 // Todas las carpetas del cliente (para el selector de destino al mover por menú).
@@ -77,6 +81,7 @@ export async function buscar(clientId: string, filtros: { texto?: string; estado
     },
     orderBy: { updatedAt: "desc" },
     take: 200,
+    include: { workflow: { select: { nombre: true } } },
   });
 }
 
@@ -154,9 +159,22 @@ export async function renombrarDocumento(documentoId: string, nombre: string) {
   revalidatePath("/boveda");
 }
 
+// Fecha-solo (YYYY-MM-DD) → mediodía local: evita el off-by-one por zona horaria.
+function fechaSolo(v: string | null | undefined): Date | null | undefined {
+  if (v === undefined) return undefined;
+  if (!v) return null;
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T12:00:00` : v);
+}
+
 export async function editarMetaDocumento(
   documentoId: string,
-  meta: { estado?: string; fechaDocumento?: string | null; descripcion?: string | null },
+  meta: {
+    estado?: string;
+    fechaDocumento?: string | null;
+    fechaVencimiento?: string | null;
+    descripcion?: string | null;
+    workflowId?: string | null;
+  },
 ) {
   const { id } = await sesion();
   const doc = await docDe(documentoId, id);
@@ -164,19 +182,32 @@ export async function editarMetaDocumento(
     where: { id: doc.id },
     data: {
       ...(meta.estado ? { estado: meta.estado } : {}),
-      ...(meta.fechaDocumento !== undefined
-        ? {
-            // Fecha-solo (YYYY-MM-DD): fijar a mediodía local evita el off-by-one por
-            // zona horaria al guardar en una columna timestamp sin tz.
-            fechaDocumento: meta.fechaDocumento
-              ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(meta.fechaDocumento) ? `${meta.fechaDocumento}T12:00:00` : meta.fechaDocumento)
-              : null,
-          }
-        : {}),
+      ...(meta.fechaDocumento !== undefined ? { fechaDocumento: fechaSolo(meta.fechaDocumento) } : {}),
+      ...(meta.fechaVencimiento !== undefined ? { fechaVencimiento: fechaSolo(meta.fechaVencimiento) } : {}),
       ...(meta.descripcion !== undefined ? { descripcion: meta.descripcion } : {}),
+      ...(meta.workflowId !== undefined ? { workflowId: meta.workflowId || null } : {}),
     },
   });
   revalidatePath("/boveda");
+}
+
+// Trámites de la Guía para el selector de vínculo (id + nombre).
+export async function listarWorkflowsParaVincular() {
+  await sesion();
+  return db.workflow.findMany({ orderBy: { orden: "asc" }, select: { id: true, nombre: true, servicioId: true } });
+}
+
+// Documentos con vencimiento dentro de los próximos `dias` (o ya vencidos) de un cliente.
+export async function documentosPorVencer(clientId: string, dias = 30) {
+  const { id } = await sesion();
+  await assertCliente(clientId, id);
+  const limite = new Date();
+  limite.setDate(limite.getDate() + dias);
+  return db.documento.findMany({
+    where: { clientId, fechaVencimiento: { not: null, lte: limite } },
+    orderBy: { fechaVencimiento: "asc" },
+    select: { id: true, nombre: true, fechaVencimiento: true, carpetaId: true },
+  });
 }
 
 // ── Carpetas ───────────────────────────────────────────────────────

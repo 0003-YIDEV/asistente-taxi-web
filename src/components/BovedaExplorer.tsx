@@ -12,7 +12,7 @@ import {
   listarCarpetas, listarDocumentos, subirDocumento, descargarDocumento,
   borrarDocumento, crearCarpeta, renombrarCarpeta, borrarCarpeta,
   renombrarDocumento, buscar, moverDocumento, moverCarpeta,
-  listarTodasCarpetas, editarMetaDocumento,
+  listarTodasCarpetas, editarMetaDocumento, listarWorkflowsParaVincular,
 } from "@/lib/actions/boveda";
 
 type DragItem = { tipo: "doc" | "carpeta"; id: string };
@@ -21,7 +21,10 @@ type Carpeta = { id: string; nombre: string; parentId: string | null };
 type Documento = {
   id: string; nombre: string; mime: string; tamanoBytes: number; estado: string;
   carpetaId: string | null; fechaDocumento?: string | Date | null; descripcion?: string | null;
+  fechaVencimiento?: string | Date | null; workflowId?: string | null;
+  workflow?: { nombre: string } | null;
 };
+type WfLink = { id: string; nombre: string };
 
 function iconoDe(mime: string, size = 18) {
   if (mime === "application/pdf") return <FileText size={size} className="text-red-500" />;
@@ -49,6 +52,7 @@ export function BovedaExplorer() {
   const [moverDoc, setMoverDoc] = useState<Documento | null>(null);
   const [editarDoc, setEditarDoc] = useState<Documento | null>(null);
   const [todasCarpetas, setTodasCarpetas] = useState<Carpeta[]>([]);
+  const [workflowsLink, setWorkflowsLink] = useState<WfLink[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carpetaActual = ruta[ruta.length - 1].id;
@@ -165,19 +169,38 @@ export function BovedaExplorer() {
     return partes.join(" / ");
   }
 
-  async function guardarMeta(estado: string, fechaDocumento: string, descripcion: string) {
+  async function abrirMeta(d: Documento) {
+    setEditarDoc(d);
+    if (workflowsLink.length === 0) {
+      try { setWorkflowsLink((await listarWorkflowsParaVincular()) as WfLink[]); } catch { /* opcional */ }
+    }
+  }
+  async function guardarMeta(campos: { estado: string; fechaDocumento: string; fechaVencimiento: string; descripcion: string; workflowId: string }) {
     if (!editarDoc || !clientId) return;
     try {
       await editarMetaDocumento(editarDoc.id, {
-        estado,
-        fechaDocumento: fechaDocumento || null,
-        descripcion: descripcion || null,
+        estado: campos.estado,
+        fechaDocumento: campos.fechaDocumento || null,
+        fechaVencimiento: campos.fechaVencimiento || null,
+        descripcion: campos.descripcion || null,
+        workflowId: campos.workflowId || null,
       });
       setEditarDoc(null);
       await cargar(clientId, carpetaActual);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar");
     }
+  }
+
+  // Badge de vencimiento: vencido / vence pronto / ok.
+  function venceInfo(fecha: string | Date | null | undefined): { label: string; cls: string } | null {
+    if (!fecha) return null;
+    const d = new Date(fecha);
+    const dias = Math.ceil((d.getTime() - Date.now()) / 86400000);
+    if (dias < 0) return { label: `Vencido (${-dias}d)`, cls: "bg-red-100 text-red-700 border-red-200" };
+    if (dias <= 7) return { label: `Vence en ${dias}d`, cls: "bg-red-50 text-red-700 border-red-200" };
+    if (dias <= 30) return { label: `Vence en ${dias}d`, cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: `Vence ${d.toLocaleDateString("es-ES")}`, cls: "bg-gray-50 text-gray-500 border-gray-200" };
   }
   async function descargar(d: Documento) {
     const res = await descargarDocumento(d.id);
@@ -383,13 +406,22 @@ export function BovedaExplorer() {
                     {iconoDe(d.mime, vista === "cuadricula" ? 32 : 18)}
                     <span className="flex flex-col min-w-0">
                       <span className="text-sm text-gray-800 truncate">{d.nombre}</span>
-                      <span className="text-[10px] text-gray-400">{humanBytes(d.tamanoBytes)}{d.estado === "borrador" ? " · borrador" : ""}</span>
+                      <span className="text-[10px] text-gray-400 truncate">
+                        {humanBytes(d.tamanoBytes)}
+                        {d.estado === "borrador" ? " · borrador" : ""}
+                        {d.workflow?.nombre ? ` · 🔗 ${d.workflow.nombre}` : ""}
+                      </span>
+                      {venceInfo(d.fechaVencimiento) && (
+                        <span className={`mt-0.5 self-start text-[10px] font-bold px-1.5 py-0.5 rounded border ${venceInfo(d.fechaVencimiento)!.cls}`}>
+                          {venceInfo(d.fechaVencimiento)!.label}
+                        </span>
+                      )}
                     </span>
                   </button>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                     <button onClick={() => descargar(d)} className="p-1 text-gray-400 hover:text-[var(--color-brand-primary)]" title="Descargar"><Download size={13} /></button>
                     <button onClick={() => abrirMover(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Mover a…"><FolderInput size={13} /></button>
-                    <button onClick={() => setEditarDoc(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Metadatos"><SlidersHorizontal size={13} /></button>
+                    <button onClick={() => abrirMeta(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Metadatos"><SlidersHorizontal size={13} /></button>
                     <button onClick={() => renombrarDoc(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Renombrar"><Pencil size={13} /></button>
                     <button onClick={() => eliminarDoc(d)} className="p-1 text-gray-400 hover:text-red-600" title="Borrar"><Trash2 size={13} /></button>
                   </div>
@@ -453,10 +485,13 @@ export function BovedaExplorer() {
           onSubmit={(e) => {
             e.preventDefault();
             const f = e.currentTarget;
-            const estado = (f.elements.namedItem("estado") as HTMLSelectElement).value;
-            const fecha = (f.elements.namedItem("fecha") as HTMLInputElement).value;
-            const desc = (f.elements.namedItem("desc") as HTMLTextAreaElement).value;
-            guardarMeta(estado, fecha, desc);
+            guardarMeta({
+              estado: (f.elements.namedItem("estado") as HTMLSelectElement).value,
+              fechaDocumento: (f.elements.namedItem("fecha") as HTMLInputElement).value,
+              fechaVencimiento: (f.elements.namedItem("venc") as HTMLInputElement).value,
+              descripcion: (f.elements.namedItem("desc") as HTMLTextAreaElement).value,
+              workflowId: (f.elements.namedItem("workflow") as HTMLSelectElement).value,
+            });
           }}
         >
           <div className="bg-white rounded-2xl max-w-md w-full flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -480,6 +515,25 @@ export function BovedaExplorer() {
                   defaultValue={editarDoc.fechaDocumento ? new Date(editarDoc.fechaDocumento).toISOString().slice(0, 10) : ""}
                   className="text-sm px-2.5 py-1.5 rounded-lg border border-gray-200"
                 />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Fecha de vencimiento</span>
+                <input
+                  name="venc"
+                  type="date"
+                  defaultValue={editarDoc.fechaVencimiento ? new Date(editarDoc.fechaVencimiento).toISOString().slice(0, 10) : ""}
+                  className="text-sm px-2.5 py-1.5 rounded-lg border border-gray-200"
+                />
+                <span className="text-[10px] text-gray-400">ITV, seguro, licencia, apoderamiento REGAP…</span>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Vincular a trámite (Guía)</span>
+                <select name="workflow" defaultValue={editarDoc.workflowId ?? ""} className="text-sm px-2.5 py-1.5 rounded-lg border border-gray-200">
+                  <option value="">— Sin vincular —</option>
+                  {workflowsLink.map((w) => (
+                    <option key={w.id} value={w.id}>{w.nombre}</option>
+                  ))}
+                </select>
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Descripción</span>

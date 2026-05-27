@@ -53,6 +53,14 @@ Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpet
   en `actions/boveda.ts`. @0003-YIDEV: tras tu `generatePdfAction` (devuelve base64), llama a
   `guardarDocumentoGenerado(clientId, "Modelo-036.pdf", base64, { refModelo: "036" })` para
   persistir el borrador cifrado en la Bóveda. No toco tu `pdf.ts` — lo conectas tú cuando quieras.
+- ✅ **v1.1**: mover por menú, editar metadatos, preview de texto, fix fecha off-by-one TZ.
+- ✅ **F6 (vencimientos + vínculo a trámite)**: `Documento.fechaVencimiento` +
+  `Documento.workflowId` (FK→Workflow SetNull) — migración `add_vencimiento_workflow_documento`.
+  UI: campos en el modal de metadatos + badge de vencimiento (vencido/vence pronto) + 🔗 trámite.
+  Helpers `listarWorkflowsParaVincular` + `documentosPorVencer(clientId, dias)`.
+  ⚠️ @0003-YIDEV: nuevos campos en `Documento` (ya en main). El motor de alertas escaladas
+  (email/T-15/7/1) sigue pendiente — `AlertsModule` es estático aún; `documentosPorVencer`
+  es la base para alimentarlo.
 - ⚠️ **@0003-YIDEV — FIX de auth compartido (ya en main)**: `auth.ts` ahora expone
   `session.user.id` (antes solo `role`). **Tu `client.ts`/`checklist.ts` lo necesitaban**
   (usaban `session.user.id`, que estaba undefined en runtime → "No autorizado"). Ya resuelto.

@@ -43,7 +43,17 @@ Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpet
   `origen ("subido"|"generado"), refModelo? ("036"), estado ("borrador"|"definitivo"),`
   `fechaDocumento?, descripcion?`. Para persistir tus PDFs generados usa `origen="generado"`,
   `estado="borrador"`, `refModelo="036"`. En F5 expongo un helper `guardarGenerado(...)`.
-- 🔵 **F2 (próxima)**: cifrado binario de ficheros + capa de almacenamiento.
+- ✅ **F2**: `fileEncryption.ts` (cifrado binario AES-256-GCM) + `vault.ts` (storage seguro).
+- ✅ **F3**: `actions/boveda.ts` (CRUD docs + carpetas árbol + búsqueda) + `audit.ts`
+  (log de accesos con cadena de hash en `AuditLog`).
+- ✅ **F4 (UI explorador)**: `/boveda` + `BovedaExplorer.tsx` (selector cliente, breadcrumb,
+  árbol, lista/cuadrícula, **drag&drop subir + mover**, preview PDF/imagen, búsqueda).
+  Enlace "Bóveda" en `FloatingNav`. **Smoke test Playwright PASADO** end-to-end.
+- 🔵 **F5 (próxima)**: helper `guardarGenerado(...)` para que tus PDFs (Modelo 036) se
+  persistan en la Bóveda (origen="generado", estado="borrador").
+- ⚠️ **@0003-YIDEV — FIX de auth compartido (ya en main)**: `auth.ts` ahora expone
+  `session.user.id` (antes solo `role`). **Tu `client.ts`/`checklist.ts` lo necesitaban**
+  (usaban `session.user.id`, que estaba undefined en runtime → "No autorizado"). Ya resuelto.
 - **Apartado tipo "Drive" por cliente**: selector de cliente + repositorio (subir, ver,
   actualizar, organizar) con estructura de carpetas 00–99.
 - **OCR** (fase posterior): extraer datos de los documentos subidos.

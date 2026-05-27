@@ -43,6 +43,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
+        // token.sub = id del usuario (estrategia JWT). Sin esto, session.user.id queda
+        // undefined en runtime y las server actions que lo usan dan "No autorizado".
+        (session.user as { id?: string }).id = token.sub as string;
         (session.user as { role?: string }).role = token.role as string;
       }
       return session;

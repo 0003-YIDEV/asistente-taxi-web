@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Folder, FileText, FileImage, File as FileIcon, Upload, FolderPlus, Search,
   LayoutGrid, List, Download, Trash2, Pencil, Home, X, Loader2, ChevronRight,
-  FolderInput, SlidersHorizontal,
+  FolderInput, SlidersHorizontal, Eye,
 } from "lucide-react";
 import { ClientesSidebar } from "@/components/ClientesSidebar";
 import {
@@ -51,8 +51,16 @@ export function BovedaExplorer() {
   const [preview, setPreview] = useState<{ nombre: string; url: string; mime: string; texto?: string } | null>(null);
   const [moverDoc, setMoverDoc] = useState<Documento | null>(null);
   const [editarDoc, setEditarDoc] = useState<Documento | null>(null);
+  const [detalleDoc, setDetalleDoc] = useState<Documento | null>(null);
   const [todasCarpetas, setTodasCarpetas] = useState<Carpeta[]>([]);
   const [workflowsLink, setWorkflowsLink] = useState<WfLink[]>([]);
+  // Modales propios (Next 16/Turbopack bloquea window.prompt() y confirm() en el navegador).
+  const [promptState, setPromptState] = useState<
+    { titulo: string; etiqueta: string; valor: string; confirmar: string; onOk: (v: string) => void | Promise<void> } | null
+  >(null);
+  const [confirmState, setConfirmState] = useState<
+    { mensaje: string; onOk: () => void | Promise<void> } | null
+  >(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carpetaActual = ruta[ruta.length - 1].id;
@@ -207,46 +215,36 @@ export function BovedaExplorer() {
     descargarBlob(`data:${res.mime};base64,${res.base64}`, res.nombre);
   }
 
-  async function nuevaCarpeta() {
+  function nuevaCarpeta() {
     if (!clientId) return;
-    const nombre = window.prompt("Nombre de la carpeta:");
-    if (!nombre?.trim()) return;
-    try {
-      await crearCarpeta(clientId, carpetaActual, nombre.trim());
-      await cargar(clientId, carpetaActual);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    }
+    setPromptState({
+      titulo: "Nueva carpeta", etiqueta: "Nombre de la carpeta", valor: "", confirmar: "Crear",
+      onOk: async (nombre) => { await crearCarpeta(clientId, carpetaActual, nombre); await cargar(clientId, carpetaActual); },
+    });
   }
-  async function eliminarCarpeta(c: Carpeta) {
-    if (!clientId) return;
-    if (!confirm(`¿Borrar la carpeta "${c.nombre}"? (debe estar vacía)`)) return;
-    try {
-      await borrarCarpeta(c.id);
-      await cargar(clientId, carpetaActual);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    }
+  function eliminarCarpeta(c: Carpeta) {
+    setConfirmState({
+      mensaje: `¿Borrar la carpeta "${c.nombre}"? Debe estar vacía.`,
+      onOk: async () => { if (!clientId) return; await borrarCarpeta(c.id); await cargar(clientId, carpetaActual); },
+    });
   }
-  async function renombrar(c: Carpeta) {
-    if (!clientId) return;
-    const n = window.prompt("Nuevo nombre:", c.nombre);
-    if (!n?.trim()) return;
-    await renombrarCarpeta(c.id, n.trim());
-    await cargar(clientId, carpetaActual);
+  function renombrar(c: Carpeta) {
+    setPromptState({
+      titulo: "Renombrar carpeta", etiqueta: "Nuevo nombre", valor: c.nombre, confirmar: "Guardar",
+      onOk: async (n) => { if (!clientId) return; await renombrarCarpeta(c.id, n); await cargar(clientId, carpetaActual); },
+    });
   }
-  async function eliminarDoc(d: Documento) {
-    if (!clientId) return;
-    if (!confirm(`¿Borrar "${d.nombre}"? Esta acción es permanente.`)) return;
-    await borrarDocumento(d.id);
-    await cargar(clientId, carpetaActual);
+  function eliminarDoc(d: Documento) {
+    setConfirmState({
+      mensaje: `¿Borrar "${d.nombre}"? Esta acción es permanente.`,
+      onOk: async () => { if (!clientId) return; await borrarDocumento(d.id); await cargar(clientId, carpetaActual); },
+    });
   }
-  async function renombrarDoc(d: Documento) {
-    if (!clientId) return;
-    const n = window.prompt("Nuevo nombre:", d.nombre);
-    if (!n?.trim()) return;
-    await renombrarDocumento(d.id, n.trim());
-    await cargar(clientId, carpetaActual);
+  function renombrarDoc(d: Documento) {
+    setPromptState({
+      titulo: "Renombrar documento", etiqueta: "Nuevo nombre", valor: d.nombre, confirmar: "Guardar",
+      onOk: async (n) => { if (!clientId) return; await renombrarDocumento(d.id, n); await cargar(clientId, carpetaActual); },
+    });
   }
   async function ejecutarBusqueda() {
     if (!clientId) return;
@@ -404,7 +402,7 @@ export function BovedaExplorer() {
                   onDragStart={(e) => { e.stopPropagation(); onDragStartItem(e, { tipo: "doc", id: d.id }); }}
                   className={`group flex items-center gap-2 rounded-lg hover:bg-gray-50 ${vista === "cuadricula" ? "flex-col p-4 border border-gray-100" : "px-3 py-2"}`}
                 >
-                  <button onClick={() => abrirPreview(d)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                  <button onClick={() => setDetalleDoc(d)} onDoubleClick={() => abrirPreview(d)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
                     {iconoDe(d.mime, vista === "cuadricula" ? 32 : 18)}
                     <span className="flex flex-col min-w-0">
                       <span className="text-sm text-gray-800 truncate">{d.nombre}</span>
@@ -550,6 +548,115 @@ export function BovedaExplorer() {
             </div>
           </div>
         </form>
+      )}
+
+      {/* Panel de detalle (deslizante derecha, estilo Drive) */}
+      {detalleDoc && (
+        <>
+          <div className="fixed inset-0 z-30 bg-black/20" onClick={() => setDetalleDoc(null)} />
+          <div className="fixed right-0 top-0 h-full w-[360px] max-w-[90vw] bg-white shadow-2xl z-40 flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-bold text-gray-900">Detalles</span>
+              <button onClick={() => setDetalleDoc(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4 flex flex-col gap-4">
+              <div className="flex flex-col items-center gap-2 text-center">
+                {iconoDe(detalleDoc.mime, 48)}
+                <span className="text-sm font-semibold text-gray-900 break-words">{detalleDoc.nombre}</span>
+                {venceInfo(detalleDoc.fechaVencimiento) && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${venceInfo(detalleDoc.fechaVencimiento)!.cls}`}>
+                    {venceInfo(detalleDoc.fechaVencimiento)!.label}
+                  </span>
+                )}
+              </div>
+
+              <dl className="flex flex-col gap-2 text-sm">
+                {([
+                  ["Tipo", detalleDoc.mime],
+                  ["Tamaño", humanBytes(detalleDoc.tamanoBytes)],
+                  ["Estado", detalleDoc.estado],
+                  ["Fecha documento", detalleDoc.fechaDocumento ? new Date(detalleDoc.fechaDocumento).toLocaleDateString("es-ES") : "—"],
+                  ["Vencimiento", detalleDoc.fechaVencimiento ? new Date(detalleDoc.fechaVencimiento).toLocaleDateString("es-ES") : "—"],
+                  ["Trámite", detalleDoc.workflow?.nombre ?? "—"],
+                  ["Descripción", detalleDoc.descripcion || "—"],
+                ] as [string, string][]).map(([k, v]) => (
+                  <div key={k} className="flex flex-col">
+                    <dt className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{k}</dt>
+                    <dd className="text-gray-800 break-words">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div className="p-3 border-t border-gray-100 grid grid-cols-2 gap-2">
+              <button onClick={() => abrirPreview(detalleDoc)} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-sm font-semibold hover:opacity-90"><Eye size={15} /> Previsualizar</button>
+              <button onClick={() => descargar(detalleDoc)} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><Download size={15} /> Descargar</button>
+              <button onClick={() => { const d = detalleDoc; setDetalleDoc(null); abrirMover(d); }} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FolderInput size={15} /> Mover</button>
+              <button onClick={() => { const d = detalleDoc; setDetalleDoc(null); abrirMeta(d); }} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><SlidersHorizontal size={15} /> Metadatos</button>
+              <button onClick={() => renombrarDoc(detalleDoc)} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><Pencil size={15} /> Renombrar</button>
+              <button onClick={() => { const d = detalleDoc; setDetalleDoc(null); eliminarDoc(d); }} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-600 hover:bg-red-100"><Trash2 size={15} /> Borrar</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal de entrada de texto (sustituye a window.prompt) */}
+      {promptState && (
+        <form
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setPromptState(null)}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const valor = (e.currentTarget.elements.namedItem("valor") as HTMLInputElement).value.trim();
+            if (!valor) return;
+            const cb = promptState.onOk;
+            setPromptState(null);
+            try { await cb(valor); } catch (err) { setError(err instanceof Error ? err.message : "Error"); }
+          }}
+        >
+          <div className="bg-white rounded-2xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-semibold text-gray-800">{promptState.titulo}</span>
+              <button type="button" onClick={() => setPromptState(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            </div>
+            <div className="p-4 flex flex-col gap-1">
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{promptState.etiqueta}</span>
+              <input
+                name="valor"
+                autoFocus
+                defaultValue={promptState.valor}
+                className="w-full text-sm px-2.5 py-1.5 rounded-lg border border-gray-200 focus:border-[var(--color-brand-primary)] outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2 px-4 pb-4">
+              <button type="submit" className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-sm font-semibold hover:opacity-90">{promptState.confirmar}</button>
+              <button type="button" onClick={() => setPromptState(null)} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Modal de confirmación (sustituye a window.confirm) */}
+      {confirmState && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setConfirmState(null)}>
+          <div className="bg-white rounded-2xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-4 text-sm text-gray-700">{confirmState.mensaje}</div>
+            <div className="flex items-center gap-2 px-4 pb-4">
+              <button
+                onClick={async () => {
+                  const cb = confirmState.onOk;
+                  setConfirmState(null);
+                  try { await cb(); } catch (err) { setError(err instanceof Error ? err.message : "Error"); }
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:opacity-90"
+              >
+                Eliminar
+              </button>
+              <button onClick={() => setConfirmState(null)} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

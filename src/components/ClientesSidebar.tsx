@@ -18,6 +18,7 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
   const [editId, setEditId] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aEliminar, setAEliminar] = useState<Cliente | null>(null); // confirm modal (Turbopack bloquea confirm())
 
   async function recargar() {
     setCargando(true);
@@ -74,8 +75,10 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
     }
   }
 
-  async function eliminar(c: Cliente) {
-    if (!confirm(`¿Eliminar al cliente "${c.nombre}" y TODOS sus documentos y carpetas? Esta acción es permanente.`)) return;
+  async function confirmarEliminar() {
+    const c = aEliminar;
+    if (!c) return;
+    setAEliminar(null);
     try {
       await deleteClient(c.id);
       if (selectedId === c.id) onSelect(null);
@@ -131,7 +134,7 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
             <span className="font-semibold text-gray-900 truncate">{sel.nombre}</span>
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={() => abrirEditar(sel)} className="flex items-center gap-1 text-[var(--color-brand-primary)] hover:underline"><Pencil size={12} /> Editar</button>
-              <button onClick={() => eliminar(sel)} className="flex items-center gap-1 text-red-500 hover:underline" title="Eliminar cliente"><Trash2 size={12} /></button>
+              <button onClick={() => setAEliminar(sel)} className="flex items-center gap-1 text-red-500 hover:underline" title="Eliminar cliente"><Trash2 size={12} /></button>
             </div>
           </div>
           <span className="truncate">📧 {sel.email || "—"}</span>
@@ -173,6 +176,21 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
                 {guardando ? "Guardando…" : editId ? "Guardar cambios" : "Crear cliente"}
               </button>
               <button onClick={() => setForm(null)} disabled={guardando} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación de borrado (Turbopack bloquea confirm()) */}
+      {aEliminar && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setAEliminar(null)}>
+          <div className="bg-white rounded-2xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-4 text-sm text-gray-700">
+              ¿Eliminar al cliente <strong>{aEliminar.nombre}</strong> y TODOS sus documentos y carpetas? Esta acción es permanente.
+            </div>
+            <div className="flex items-center gap-2 px-4 pb-4">
+              <button onClick={confirmarEliminar} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:opacity-90">Eliminar</button>
+              <button onClick={() => setAEliminar(null)} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
             </div>
           </div>
         </div>

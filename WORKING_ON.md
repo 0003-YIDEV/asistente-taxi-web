@@ -79,6 +79,14 @@ Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpet
   - Implementado `src/app/perfil/page.tsx` con datos de sesión.
   - Conectado el botón "Usuario" en `FloatingNav` a la nueva ruta.
 
+### ℹ️ Avisos de 0001-YIDev (cambios en main que te afectan)
+- **DESPLEGADO en prod (horus.support)**: editor de la Guía + Bóveda documental completa
+  (F0-F6) + workflows seedeados en prod. Fixes: `auth.ts` (session.user.id), `auth.config.ts`
+  (`trustHost: true` — sin esto auth() en server components rebota en prod), `Dockerfile`
+  (reinstala `pg` limpio), `docker-compose.prod.yml` (volumen `storage_prod`).
+- **`client.ts`**: añadí `updateClient(id, datos)` (guard de propiedad, NIF/IBAN cifrados).
+  La Bóveda ahora tiene UI estilo Drive: `ClientesSidebar` (alta/edición de clientes).
+
 ### 🔵 En curso
 - **Integración de PDFs Oficiales (Modelo 036) — REFINAMIENTO**:
   - *Estado actual:* La UI (`PdfForm.tsx`) y el mapeo (`model036Mapping.ts`) están operativos, pero la escritura del PDF con `pdf-lib` es inestable porque el documento oficial no tiene campos AcroForm reales (es plano).

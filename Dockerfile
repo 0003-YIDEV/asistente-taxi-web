@@ -43,8 +43,15 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-# Instalar Prisma y tsx en el runner para migraciones y seeding post-despliegue
-RUN npm install prisma tsx
+# Instalar Prisma y tsx en el runner para migraciones y seeding post-despliegue.
+# El build standalone de Next traza `pg` de forma incompleta (faltan ficheros como
+# postgres-array/index.js) → el seed/scripts con pg fallan. Reinstalamos `pg` y las
+# dependencias del seed de forma LIMPIA para que app + seed tengan el árbol completo.
+RUN rm -rf node_modules/pg node_modules/pg-types node_modules/pg-pool \
+      node_modules/pg-connection-string node_modules/pg-int8 node_modules/pgpass \
+      node_modules/postgres-array node_modules/postgres-bytea \
+      node_modules/postgres-date node_modules/postgres-interval \
+  && npm install prisma tsx pg @prisma/adapter-pg argon2
 
 # Bóveda documental: carpeta del volumen persistente con dueño nextjs (el volumen nuevo
 # hereda este dueño en su primer montaje → el usuario no-root puede escribir ficheros).

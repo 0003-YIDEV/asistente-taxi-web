@@ -37,6 +37,10 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_NAME: ${ADMIN_NAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Bóveda documental: ficheros cifrados en un volumen persistente (NO efímero).
+      STORAGE_DIR: /data/storage
+    volumes:
+      - storage_prod:/data/storage
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=Host(`horus.support`)"
@@ -66,3 +70,4 @@ services:
 volumes:
   pgdata_prod:
   traefik-certs:
+  storage_prod:

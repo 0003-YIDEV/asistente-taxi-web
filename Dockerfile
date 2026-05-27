@@ -46,6 +46,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 # Instalar Prisma y tsx en el runner para migraciones y seeding post-despliegue
 RUN npm install prisma tsx
 
+# Bóveda documental: carpeta del volumen persistente con dueño nextjs (el volumen nuevo
+# hereda este dueño en su primer montaje → el usuario no-root puede escribir ficheros).
+RUN mkdir -p /data/storage && chown -R nextjs:nodejs /data/storage
+
 USER nextjs
 
 EXPOSE 3000

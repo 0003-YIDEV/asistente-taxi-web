@@ -5,18 +5,23 @@ import Link from "next/link";
 import {
   Folder, FileText, FileImage, File as FileIcon, Upload, FolderPlus, Search,
   LayoutGrid, List, Download, Trash2, Pencil, Home, X, Loader2, ChevronRight,
+  FolderInput, SlidersHorizontal,
 } from "lucide-react";
 import { ClientSelector } from "@/components/ClientSelector";
 import {
   listarCarpetas, listarDocumentos, subirDocumento, descargarDocumento,
   borrarDocumento, crearCarpeta, renombrarCarpeta, borrarCarpeta,
   renombrarDocumento, buscar, moverDocumento, moverCarpeta,
+  listarTodasCarpetas, editarMetaDocumento,
 } from "@/lib/actions/boveda";
 
 type DragItem = { tipo: "doc" | "carpeta"; id: string };
 
 type Carpeta = { id: string; nombre: string; parentId: string | null };
-type Documento = { id: string; nombre: string; mime: string; tamanoBytes: number; estado: string; carpetaId: string | null };
+type Documento = {
+  id: string; nombre: string; mime: string; tamanoBytes: number; estado: string;
+  carpetaId: string | null; fechaDocumento?: string | Date | null; descripcion?: string | null;
+};
 
 function iconoDe(mime: string, size = 18) {
   if (mime === "application/pdf") return <FileText size={size} className="text-red-500" />;
@@ -40,7 +45,10 @@ export function BovedaExplorer() {
   const [subiendo, setSubiendo] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [q, setQ] = useState("");
-  const [preview, setPreview] = useState<{ nombre: string; url: string; mime: string } | null>(null);
+  const [preview, setPreview] = useState<{ nombre: string; url: string; mime: string; texto?: string } | null>(null);
+  const [moverDoc, setMoverDoc] = useState<Documento | null>(null);
+  const [editarDoc, setEditarDoc] = useState<Documento | null>(null);
+  const [todasCarpetas, setTodasCarpetas] = useState<Carpeta[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carpetaActual = ruta[ruta.length - 1].id;
@@ -110,11 +118,65 @@ export function BovedaExplorer() {
       const url = `data:${res.mime};base64,${res.base64}`;
       if (d.mime === "application/pdf" || d.mime.startsWith("image/")) {
         setPreview({ nombre: res.nombre, url, mime: res.mime });
+      } else if (d.mime === "text/plain") {
+        const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
+        const texto = new TextDecoder().decode(bytes);
+        setPreview({ nombre: res.nombre, url, mime: res.mime, texto });
       } else {
         descargarBlob(url, res.nombre);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al abrir");
+    }
+  }
+
+  // Abre el modal de mover (carga todas las carpetas del cliente como destinos).
+  async function abrirMover(d: Documento) {
+    if (!clientId) return;
+    try {
+      const cs = await listarTodasCarpetas(clientId);
+      setTodasCarpetas(cs as Carpeta[]);
+      setMoverDoc(d);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error");
+    }
+  }
+  async function confirmarMover(destinoCarpetaId: string | null) {
+    if (!moverDoc || !clientId) return;
+    try {
+      await moverDocumento(moverDoc.id, destinoCarpetaId);
+      setMoverDoc(null);
+      await cargar(clientId, carpetaActual);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo mover");
+    }
+  }
+  // Construye la ruta legible de una carpeta (para el selector de destino).
+  function rutaCarpeta(c: Carpeta): string {
+    const partes: string[] = [c.nombre];
+    let p = c.parentId;
+    const byId = new Map(todasCarpetas.map((x) => [x.id, x]));
+    while (p) {
+      const padre = byId.get(p);
+      if (!padre) break;
+      partes.unshift(padre.nombre);
+      p = padre.parentId;
+    }
+    return partes.join(" / ");
+  }
+
+  async function guardarMeta(estado: string, fechaDocumento: string, descripcion: string) {
+    if (!editarDoc || !clientId) return;
+    try {
+      await editarMetaDocumento(editarDoc.id, {
+        estado,
+        fechaDocumento: fechaDocumento || null,
+        descripcion: descripcion || null,
+      });
+      setEditarDoc(null);
+      await cargar(clientId, carpetaActual);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar");
     }
   }
   async function descargar(d: Documento) {
@@ -326,6 +388,8 @@ export function BovedaExplorer() {
                   </button>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                     <button onClick={() => descargar(d)} className="p-1 text-gray-400 hover:text-[var(--color-brand-primary)]" title="Descargar"><Download size={13} /></button>
+                    <button onClick={() => abrirMover(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Mover a…"><FolderInput size={13} /></button>
+                    <button onClick={() => setEditarDoc(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Metadatos"><SlidersHorizontal size={13} /></button>
                     <button onClick={() => renombrarDoc(d)} className="p-1 text-gray-400 hover:text-gray-700" title="Renombrar"><Pencil size={13} /></button>
                     <button onClick={() => eliminarDoc(d)} className="p-1 text-gray-400 hover:text-red-600" title="Borrar"><Trash2 size={13} /></button>
                   </div>
@@ -348,12 +412,86 @@ export function BovedaExplorer() {
               {preview.mime.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview.url} alt={preview.nombre} className="max-w-full max-h-[80vh] object-contain" />
+              ) : preview.mime === "text/plain" ? (
+                <pre className="w-full h-[80vh] overflow-auto p-4 text-sm text-gray-800 whitespace-pre-wrap font-mono">{preview.texto}</pre>
               ) : (
                 <iframe src={preview.url} title={preview.nombre} className="w-full h-[80vh]" />
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal mover */}
+      {moverDoc && (
+        <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4" onClick={() => setMoverDoc(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-semibold text-gray-800 truncate">Mover “{moverDoc.nombre}” a…</span>
+              <button onClick={() => setMoverDoc(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-auto p-2 flex flex-col gap-1">
+              <button onClick={() => confirmarMover(null)} className="text-left text-sm px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                <Home size={15} className="text-gray-400" /> Raíz (sin carpeta)
+              </button>
+              {todasCarpetas.map((c) => (
+                <button key={c.id} onClick={() => confirmarMover(c.id)} className="text-left text-sm px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                  <Folder size={15} className="text-amber-500" /> {rutaCarpeta(c)}
+                </button>
+              ))}
+              {todasCarpetas.length === 0 && <p className="text-sm text-gray-400 p-3">No hay carpetas. Crea una primero.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal metadatos */}
+      {editarDoc && (
+        <form
+          className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setEditarDoc(null)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const f = e.currentTarget;
+            const estado = (f.elements.namedItem("estado") as HTMLSelectElement).value;
+            const fecha = (f.elements.namedItem("fecha") as HTMLInputElement).value;
+            const desc = (f.elements.namedItem("desc") as HTMLTextAreaElement).value;
+            guardarMeta(estado, fecha, desc);
+          }}
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-sm font-semibold text-gray-800 truncate">Metadatos · {editarDoc.nombre}</span>
+              <button type="button" onClick={() => setEditarDoc(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            </div>
+            <div className="p-4 flex flex-col gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Estado</span>
+                <select name="estado" defaultValue={editarDoc.estado} className="text-sm px-2.5 py-1.5 rounded-lg border border-gray-200">
+                  <option value="borrador">Borrador</option>
+                  <option value="definitivo">Definitivo</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Fecha del documento</span>
+                <input
+                  name="fecha"
+                  type="date"
+                  defaultValue={editarDoc.fechaDocumento ? new Date(editarDoc.fechaDocumento).toISOString().slice(0, 10) : ""}
+                  className="text-sm px-2.5 py-1.5 rounded-lg border border-gray-200"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Descripción</span>
+                <textarea name="desc" defaultValue={editarDoc.descripcion ?? ""} rows={3} className="text-sm px-2.5 py-1.5 rounded-lg border border-gray-200 resize-y" />
+              </label>
+            </div>
+            <div className="flex items-center gap-2 px-4 pb-4">
+              <button type="submit" className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-sm font-semibold hover:opacity-90">Guardar</button>
+              <button type="button" onClick={() => setEditarDoc(null)} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            </div>
+          </div>
+        </form>
       )}
     </div>
   );

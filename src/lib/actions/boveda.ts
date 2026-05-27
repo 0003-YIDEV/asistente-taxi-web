@@ -58,6 +58,13 @@ export async function listarDocumentos(clientId: string, carpetaId: string | nul
   return db.documento.findMany({ where: { clientId, carpetaId }, orderBy: { nombre: "asc" } });
 }
 
+// Todas las carpetas del cliente (para el selector de destino al mover por menú).
+export async function listarTodasCarpetas(clientId: string) {
+  const { id } = await sesion();
+  await assertCliente(clientId, id);
+  return db.carpeta.findMany({ where: { clientId }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, parentId: true } });
+}
+
 export async function buscar(clientId: string, filtros: { texto?: string; estado?: string; mime?: string }) {
   const { id } = await sesion();
   await assertCliente(clientId, id);
@@ -158,7 +165,13 @@ export async function editarMetaDocumento(
     data: {
       ...(meta.estado ? { estado: meta.estado } : {}),
       ...(meta.fechaDocumento !== undefined
-        ? { fechaDocumento: meta.fechaDocumento ? new Date(meta.fechaDocumento) : null }
+        ? {
+            // Fecha-solo (YYYY-MM-DD): fijar a mediodía local evita el off-by-one por
+            // zona horaria al guardar en una columna timestamp sin tz.
+            fechaDocumento: meta.fechaDocumento
+              ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(meta.fechaDocumento) ? `${meta.fechaDocumento}T12:00:00` : meta.fechaDocumento)
+              : null,
+          }
         : {}),
       ...(meta.descripcion !== undefined ? { descripcion: meta.descripcion } : {}),
     },

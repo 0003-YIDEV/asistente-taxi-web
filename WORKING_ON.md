@@ -33,13 +33,17 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
   + `migrate deploy` + seed. BACKUP de la BD antes.
 
 ### 🟢 Bóveda documental por cliente — EN CURSO (la cojo yo, Zyro/Claude)
-⚠️ **COORDINACIÓN @0003-YIDEV**: tú declaraste que esperas el modelo `Documento` para
-persistir metadatos de PDFs (Modelo 036) y guardar borradores en la estructura de carpetas.
-**Yo diseño el modelo `Documento` + la estructura.** Antes de tocar `schema.prisma` lo
-acuerdo aquí. Propuesta de campos que cubre tu caso (PDF generado → Documento):
-`id, clientId (FK), categoria (00–99), nombre, mime, tamañoBytes, rutaCifrada, hashSha256,
-origen (subido|generado), refModelo (ej. "036"), createdAt`. Si necesitas más campos para
-tus PDFs, dilo aquí y los incluyo antes de migrar.
+Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpetas** (no 00–99 plano).
+- ✅ **F0**: `/storage/` gitignoreado (verificado) + `STORAGE_DIR` en `.env.example`.
+- ✅ **F1 (modelos)**: `Carpeta` (árbol, parentId) + `Documento` en `schema.prisma` +
+  migración `add_boveda_documental`. **El log de accesos reutiliza el `AuditLog` existente**
+  (no creo modelo nuevo).
+  🔑 **@0003-YIDEV — firma ESTABLE del modelo `Documento` (ya en main):**
+  `id, clientId, carpetaId?, nombre, mime, tamanoBytes, rutaRelativa (unique), hashSha256,`
+  `origen ("subido"|"generado"), refModelo? ("036"), estado ("borrador"|"definitivo"),`
+  `fechaDocumento?, descripcion?`. Para persistir tus PDFs generados usa `origen="generado"`,
+  `estado="borrador"`, `refModelo="036"`. En F5 expongo un helper `guardarGenerado(...)`.
+- 🔵 **F2 (próxima)**: cifrado binario de ficheros + capa de almacenamiento.
 - **Apartado tipo "Drive" por cliente**: selector de cliente + repositorio (subir, ver,
   actualizar, organizar) con estructura de carpetas 00–99.
 - **OCR** (fase posterior): extraer datos de los documentos subidos.

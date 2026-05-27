@@ -88,6 +88,8 @@ model Client {
 
   user              User                @relation(fields: [userId], references: [id])
   checklistProgress ChecklistProgress[]
+  carpetas          Carpeta[]
+  documentos        Documento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -102,6 +104,53 @@ model ChecklistProgress {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, itemId])
+}
+
+// ───────────────────────── Bóveda documental (árbol + ficheros cifrados) ─────────────────────────
+// Árbol de carpetas por cliente. parentId null = raíz. El árbol vive en BD;
+// los ficheros se guardan con ruta plana por UUID (mover/renombrar = solo BD).
+model Carpeta {
+  id       String  @id @default(cuid())
+  clientId String
+  parentId String? // null = raíz del cliente
+
+  nombre String
+
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  parent     Carpeta?    @relation("ArbolCarpetas", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hijos      Carpeta[]   @relation("ArbolCarpetas")
+  documentos Documento[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, parentId])
+}
+
+model Documento {
+  id        String  @id @default(cuid())
+  clientId  String
+  carpetaId String? // null = raíz del cliente
+
+  nombre         String
+  mime           String
+  tamanoBytes    Int
+  rutaRelativa   String    @unique // ruta plana del fichero cifrado en STORAGE_DIR (UUID)
+  hashSha256     String // integridad del contenido en claro
+  origen         String    @default("subido") // "subido" | "generado"
+  refModelo      String? // p.ej. "036" si lo generó el flujo de PDF del socio
+  estado         String    @default("definitivo") // "borrador" | "definitivo"
+  fechaDocumento DateTime? // fecha real del documento (no la de subida)
+  descripcion    String?
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  carpeta Carpeta? @relation(fields: [carpetaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, carpetaId])
+  @@index([clientId, hashSha256]) // detección de duplicados
 }
 
 // --- Log de auditoría append-only (cadena de hash: lógica en R1.3) ---

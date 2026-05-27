@@ -222,3 +222,41 @@ export async function borrarCarpeta(carpetaId: string) {
   await appendAudit({ actorId: id, actorEmail: email, action: "FOLDER_DELETE", entity: "Carpeta", entityId: f.id, meta: { clientId: f.clientId } });
   revalidatePath("/boveda");
 }
+
+// ── Integración: documentos generados por la app (Fase 5) ──────────
+// Persiste un documento GENERADO (p.ej. Modelo 036 de @0003-YIDEV) recibido en base64.
+// Lo cifra y lo guarda como borrador en la Bóveda. No deduplica (los borradores se regeneran).
+export async function guardarDocumentoGenerado(
+  clientId: string,
+  nombre: string,
+  base64: string,
+  opts?: { carpetaId?: string | null; refModelo?: string; mime?: string },
+) {
+  const { id, email } = await sesion();
+  await assertCliente(clientId, id);
+  const carpetaId = opts?.carpetaId ?? null;
+  if (carpetaId) await carpetaDe(carpetaId, id);
+
+  const buf = Buffer.from(base64, "base64");
+  if (buf.length === 0) throw new Error("Contenido vacío");
+  if (buf.length > MAX_BYTES) throw new Error("Documento generado demasiado grande");
+
+  const saved = saveEncrypted(clientId, buf);
+  const doc = await db.documento.create({
+    data: {
+      clientId,
+      carpetaId,
+      nombre,
+      mime: opts?.mime ?? "application/pdf",
+      tamanoBytes: saved.tamano,
+      rutaRelativa: saved.rutaRelativa,
+      hashSha256: saved.hash,
+      origen: "generado",
+      estado: "borrador",
+      refModelo: opts?.refModelo ?? null,
+    },
+  });
+  await appendAudit({ actorId: id, actorEmail: email, action: "DOC_GENERATE", entity: "Documento", entityId: doc.id, meta: { clientId, nombre, refModelo: opts?.refModelo ?? null } });
+  revalidatePath("/boveda");
+  return { id: doc.id };
+}

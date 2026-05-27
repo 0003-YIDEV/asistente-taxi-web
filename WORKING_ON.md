@@ -49,8 +49,10 @@ Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpet
 - ✅ **F4 (UI explorador)**: `/boveda` + `BovedaExplorer.tsx` (selector cliente, breadcrumb,
   árbol, lista/cuadrícula, **drag&drop subir + mover**, preview PDF/imagen, búsqueda).
   Enlace "Bóveda" en `FloatingNav`. **Smoke test Playwright PASADO** end-to-end.
-- 🔵 **F5 (próxima)**: helper `guardarGenerado(...)` para que tus PDFs (Modelo 036) se
-  persistan en la Bóveda (origen="generado", estado="borrador").
+- ✅ **F5 (integración PDFs)**: helper `guardarDocumentoGenerado(clientId, nombre, base64, opts?)`
+  en `actions/boveda.ts`. @0003-YIDEV: tras tu `generatePdfAction` (devuelve base64), llama a
+  `guardarDocumentoGenerado(clientId, "Modelo-036.pdf", base64, { refModelo: "036" })` para
+  persistir el borrador cifrado en la Bóveda. No toco tu `pdf.ts` — lo conectas tú cuando quieras.
 - ⚠️ **@0003-YIDEV — FIX de auth compartido (ya en main)**: `auth.ts` ahora expone
   `session.user.id` (antes solo `role`). **Tu `client.ts`/`checklist.ts` lo necesitaban**
   (usaban `session.user.id`, que estaba undefined en runtime → "No autorizado"). Ya resuelto.

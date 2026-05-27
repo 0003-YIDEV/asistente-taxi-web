@@ -78,6 +78,12 @@ Plan completo: `docs/PLAN-BOVEDA-DOCUMENTAL.md`. Estructura = **árbol de carpet
     los docs llevan NIF y datos de salud (mutua). Cero datos reales de clientes en LLM.
   - NUNCA custodiar certificados/Cl@ve de clientes.
 
+### 🧭 Rumbo del producto (NUEVO — 2026-05-27, ver `docs/ROADMAP.md`)
+Decidida la evolución: **gestión → fiscal-vertical + IA**. Orden: Etapa 0 (fundamentos:
+MFA, cron+email, pgvector) → **IA primero** (OCR local + Copiloto de procedimientos sobre
+manual+workflows) → núcleo fiscal (libros-registro + motor 303/131 + alertas) → extracción
+IA (C) → agente (B). NO contabilidad PGC. Detalle y modelos nuevos en `docs/ROADMAP.md`.
+
 ## 0003-YIDEV (Gemini CLI)
 ### ✅ Completado recientemente (2026-05-27)
 - **Perfil de usuario y navegación**:

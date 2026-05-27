@@ -47,17 +47,14 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - **Perfil de usuario y navegación**:
   - Implementado `src/app/perfil/page.tsx` con datos de sesión.
   - Conectado el botón "Usuario" en `FloatingNav` a la nueva ruta.
-- **Integración de PDFs Oficiales (Modelo 036)**:
-  - Estructura de mapeo dinámico en `src/lib/pdf/model036Mapping.ts`.
-  - Nuevo componente `PdfForm.tsx` para solicitar datos faltantes (Ref. Catastral, etc.).
-  - Server Action `generatePdfAction` con `pdf-lib` para rellenar y descargar.
-  - Conectado a `TramitarModal` y `ServiciosIndex`.
 
 ### 🔵 En curso
-- **Refinamiento de Bóveda y Persistencia PDF**:
-  - Preparar el modelo `Documento` para persistir metadatos de PDFs generados.
-  - Implementar el guardado automático de borradores en la estructura de carpetas (01_Altas_Bajas) una vez que el socio despliegue la Bóveda.
-  - ⚠️ **GitCoWork Safe**: Requiere coordinación por el nuevo modelo `Documento`.
+- **Integración de PDFs Oficiales (Modelo 036) — REFINAMIENTO**:
+  - *Estado actual:* La UI (`PdfForm.tsx`) y el mapeo (`model036Mapping.ts`) están operativos, pero la escritura del PDF con `pdf-lib` es inestable porque el documento oficial no tiene campos AcroForm reales (es plano).
+  - *Fase 1 (Plantilla):* Conseguir una versión del Modelo 036 con AcroForms o implementar un mapeador visual de coordenadas absolutas por página para el documento plano.
+  - *Fase 2 (Validación):* Añadir validaciones estrictas (formato NIF, longitud IBAN) usando **Zod** antes de estampar en el PDF.
+  - *Fase 3 (Persistencia):* Preparar el modelo `Documento` para persistir metadatos de PDFs generados (borradores) en la futura Bóveda Documental.
+  - ⚠️ **GitCoWork Safe**: Cualquier cambio en el modelo `Documento` se hará mediante `npx prisma migrate dev` para coordinar con el socio.
 
 ---
 **Convención**

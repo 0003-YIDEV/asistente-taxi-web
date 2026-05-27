@@ -47,14 +47,17 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 - **Perfil de usuario y navegación**:
   - Implementado `src/app/perfil/page.tsx` con datos de sesión.
   - Conectado el botón "Usuario" en `FloatingNav` a la nueva ruta.
+- **Validación estricta para PDFs (Zod)**:
+  - Instalado `zod` e implementado esquemas en `src/lib/pdf/model036Validation.ts`.
+  - Integrada validación en el Server Action `generatePdfAction` (NIF y campos manuales).
+  - UI de `PdfForm.tsx` actualizada para mostrar errores de validación en tiempo real.
 
 ### 🔵 En curso
 - **Integración de PDFs Oficiales (Modelo 036) — REFINAMIENTO**:
-  - *Estado actual:* La UI (`PdfForm.tsx`) y el mapeo (`model036Mapping.ts`) están operativos, pero la escritura del PDF con `pdf-lib` es inestable porque el documento oficial no tiene campos AcroForm reales (es plano).
   - *Fase 1 (Plantilla):* Conseguir una versión del Modelo 036 con AcroForms o implementar un mapeador visual de coordenadas absolutas por página para el documento plano.
-  - *Fase 2 (Validación):* Añadir validaciones estrictas (formato NIF, longitud IBAN) usando **Zod** antes de estampar en el PDF.
   - *Fase 3 (Persistencia):* Preparar el modelo `Documento` para persistir metadatos de PDFs generados (borradores) en la futura Bóveda Documental.
   - ⚠️ **GitCoWork Safe**: Cualquier cambio en el modelo `Documento` se hará mediante `npx prisma migrate dev` para coordinar con el socio.
+
 
 ---
 **Convención**

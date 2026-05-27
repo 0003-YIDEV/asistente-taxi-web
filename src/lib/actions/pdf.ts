@@ -6,6 +6,7 @@ import path from "path";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { decryptField } from "@/lib/crypto/fieldEncryption";
+import { model036ManualInputsSchema, nifSchema } from "../pdf/model036Validation";
 
 export async function generatePdfAction(clientId: string, pdfId: string, manualInputs: Record<string, string>) {
   const session = await auth();
@@ -17,8 +18,16 @@ export async function generatePdfAction(clientId: string, pdfId: string, manualI
 
   if (!client) throw new Error("Cliente no encontrado");
 
-  // Descifrar datos sensibles
+  // Validar inputs manuales con Zod
+  const validation = model036ManualInputsSchema.safeParse(manualInputs);
+  if (!validation.success) {
+    const errorMsg = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(", ");
+    throw new Error(`Error de validación: ${errorMsg}`);
+  }
+
+  // Descifrar y validar datos sensibles de la DB
   const nif = decryptField(client.nifEnc);
+  nifSchema.parse(nif);
 
   const pdfPath = path.join(process.cwd(), `private/pdf/${pdfId}.pdf`);
   if (!fs.existsSync(pdfPath)) {

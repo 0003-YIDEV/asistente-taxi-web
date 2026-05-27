@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MODELO_036_MAPPING, type PdfFieldMapping } from "@/lib/pdf/model036Mapping";
 import { type ClienteDummy } from "@/lib/serviciosData";
-import { Download, FileText, Loader2, AlertCircle } from "lucide-react";
+import { Download, FileText, Loader2, AlertCircle, XCircle } from "lucide-react";
 import { generatePdfAction } from "@/lib/actions/pdf";
 
 interface PdfFormProps {
@@ -14,16 +14,19 @@ interface PdfFormProps {
 export function PdfForm({ pdfId, cliente }: PdfFormProps) {
   const [manualInputs, setManualInputs] = useState<Record<string, string>>({});
   const [generando, setGenerando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Filtrar campos que requieren entrada manual
   const camposManuales = MODELO_036_MAPPING.filter(m => m.source === 'manual');
 
   function handleInputChange(name: string, value: string) {
+    setError(null);
     setManualInputs(prev => ({ ...prev, [name]: value }));
   }
 
   async function handleDownload() {
     setGenerando(true);
+    setError(null);
     try {
       const base64 = await generatePdfAction(cliente.id, pdfId, manualInputs);
       
@@ -34,9 +37,9 @@ export function PdfForm({ pdfId, cliente }: PdfFormProps) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error al generar el PDF. Revisa la consola para más detalles.');
+    } catch (err: any) {
+      console.error('Error generating PDF:', err);
+      setError(err.message || 'Error desconocido al generar el PDF');
     } finally {
       setGenerando(false);
     }
@@ -51,6 +54,16 @@ export function PdfForm({ pdfId, cliente }: PdfFormProps) {
           <p className="opacity-90">El Modelo 036 requiere información que no está en la ficha base del cliente. Por favor, completa los siguientes campos:</p>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-xl text-red-800">
+          <XCircle size={20} className="shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold">No se pudo generar el PDF</p>
+            <p className="opacity-90">{error}</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {camposManuales.map((campo) => (

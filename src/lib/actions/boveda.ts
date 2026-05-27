@@ -211,6 +211,29 @@ export async function documentosPorVencer(clientId: string, dias = 30) {
   });
 }
 
+// Resumen por cliente para la sidebar: nº de documentos activos, vencidos y por vencer (≤30d).
+// Una sola consulta de todos los docs activos del usuario; agregación en memoria.
+export async function resumenDocsPorCliente(dias = 30) {
+  const { id } = await sesion();
+  const docs = await db.documento.findMany({
+    where: { client: { userId: id }, eliminadoEn: null },
+    select: { clientId: true, fechaVencimiento: true },
+  });
+  const ahora = Date.now();
+  const limite = ahora + dias * 86400000;
+  const out: Record<string, { docs: number; vencidos: number; porVencer: number }> = {};
+  for (const d of docs) {
+    const r = (out[d.clientId] ??= { docs: 0, vencidos: 0, porVencer: 0 });
+    r.docs++;
+    if (d.fechaVencimiento) {
+      const t = new Date(d.fechaVencimiento).getTime();
+      if (t < ahora) r.vencidos++;
+      else if (t <= limite) r.porVencer++;
+    }
+  }
+  return out;
+}
+
 // ── Carpetas ───────────────────────────────────────────────────────
 export async function crearCarpeta(clientId: string, parentId: string | null, nombre: string) {
   const { id, email } = await sesion();

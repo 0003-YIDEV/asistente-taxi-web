@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { Users, Search, Plus, Pencil, X, Loader2, Check, Trash2 } from "lucide-react";
 import { getClients, createClient, updateClient, deleteClient } from "@/lib/actions/client";
+import { resumenDocsPorCliente } from "@/lib/actions/boveda";
+
+type Resumen = Record<string, { docs: number; vencidos: number; porVencer: number }>;
 
 type Cliente = {
   id: string; nombre: string; nif: string; domicilio: string; iban: string;
@@ -10,8 +13,17 @@ type Cliente = {
 };
 const VACIO = { nombre: "", nif: "", email: "", telefono: "", domicilio: "", iban: "", numLicencia: "", matricula: "", regimen: "Módulos" };
 
-export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string | null; onSelect: (id: string | null) => void }) {
+export function ClientesSidebar({
+  selectedId,
+  onSelect,
+  refreshKey = 0,
+}: {
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  refreshKey?: number; // el explorador lo incrementa al cambiar documentos → refresca contadores
+}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [resumen, setResumen] = useState<Resumen>({});
   const [cargando, setCargando] = useState(true);
   const [q, setQ] = useState("");
   const [form, setForm] = useState<typeof VACIO | null>(null); // null = cerrado
@@ -20,10 +32,18 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
   const [error, setError] = useState<string | null>(null);
   const [aEliminar, setAEliminar] = useState<Cliente | null>(null); // confirm modal (Turbopack bloquea confirm())
 
+  async function cargarResumen() {
+    try {
+      setResumen((await resumenDocsPorCliente()) as Resumen);
+    } catch {
+      /* los contadores son accesorios: no romper la lista si fallan */
+    }
+  }
   async function recargar() {
     setCargando(true);
     try {
-      setClientes((await getClients()) as Cliente[]);
+      const [cs] = await Promise.all([getClients() as Promise<Cliente[]>, cargarResumen()]);
+      setClientes(cs);
     } finally {
       setCargando(false);
     }
@@ -31,6 +51,10 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
   useEffect(() => {
     recargar();
   }, []);
+  // Refrescar solo los contadores cuando el explorador toca documentos.
+  useEffect(() => {
+    if (refreshKey > 0) cargarResumen();
+  }, [refreshKey]);
 
   const filtrados = clientes.filter((c) =>
     [c.nombre, c.nif, c.email].some((x) => x?.toLowerCase().includes(q.toLowerCase())),
@@ -112,19 +136,40 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
         ) : filtrados.length === 0 ? (
           <p className="text-xs text-gray-400 p-3 text-center">{q ? "Sin resultados." : "Sin clientes. Crea el primero con “Nuevo”."}</p>
         ) : (
-          filtrados.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => onSelect(c.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between gap-2 ${selectedId === c.id ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-800"}`}
-            >
-              <span className="flex flex-col min-w-0">
-                <span className="text-sm font-medium truncate">{c.nombre}</span>
-                <span className="text-[10px] text-gray-400">{c.nif} · {c.regimen}</span>
-              </span>
-              {selectedId === c.id && <Check size={14} className="shrink-0" />}
-            </button>
-          ))
+          filtrados.map((c) => {
+            const r = resumen[c.id];
+            const alerta = r && r.vencidos > 0 ? "rojo" : r && r.porVencer > 0 ? "ambar" : null;
+            const nAlerta = r ? r.vencidos + r.porVencer : 0;
+            return (
+              <button
+                key={c.id}
+                onClick={() => onSelect(c.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between gap-2 ${selectedId === c.id ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-800"}`}
+              >
+                <span className="flex flex-col min-w-0">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    {alerta && (
+                      <span
+                        title={r!.vencidos > 0 ? `${r!.vencidos} vencido(s)` : `${r!.porVencer} por vencer`}
+                        className={`shrink-0 inline-block w-2 h-2 rounded-full ${alerta === "rojo" ? "bg-red-500" : "bg-amber-500"}`}
+                      />
+                    )}
+                    <span className="text-sm font-medium truncate">{c.nombre}</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                    <span className="truncate">{c.nif} · {c.regimen}</span>
+                    {r && r.docs > 0 && <span className="shrink-0 text-gray-400">· {r.docs} doc{r.docs === 1 ? "" : "s"}</span>}
+                    {nAlerta > 0 && (
+                      <span className={`shrink-0 font-semibold ${alerta === "rojo" ? "text-red-600" : "text-amber-600"}`}>
+                        · {nAlerta} ⚠
+                      </span>
+                    )}
+                  </span>
+                </span>
+                {selectedId === c.id && <Check size={14} className="shrink-0" />}
+              </button>
+            );
+          })
         )}
       </div>
 

@@ -69,6 +69,7 @@ export function BovedaExplorer() {
   >(null);
   const [papelera, setPapelera] = useState<PapeleraData | null>(null); // null = cerrada
   const [papeleraCargando, setPapeleraCargando] = useState(false);
+  const [docsVersion, setDocsVersion] = useState(0); // se incrementa al recargar docs → refresca contadores de la sidebar
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carpetaActual = ruta[ruta.length - 1].id;
@@ -80,6 +81,7 @@ export function BovedaExplorer() {
       const [cs, ds] = await Promise.all([listarCarpetas(cid, carpetaId), listarDocumentos(cid, carpetaId)]);
       setCarpetas(cs as Carpeta[]);
       setDocumentos(ds as Documento[]);
+      setDocsVersion((v) => v + 1); // avisa a la sidebar para refrescar contadores
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar");
     } finally {
@@ -343,7 +345,7 @@ export function BovedaExplorer() {
   return (
     <div className="flex gap-4 items-start">
       {/* Sidebar de clientes (estilo Drive) */}
-      <ClientesSidebar selectedId={clientId} onSelect={seleccionarCliente} />
+      <ClientesSidebar selectedId={clientId} onSelect={seleccionarCliente} refreshKey={docsVersion} />
 
       {/* Panel principal: explorador */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Search, Plus, Pencil, X, Loader2, Check } from "lucide-react";
-import { getClients, createClient, updateClient } from "@/lib/actions/client";
+import { Users, Search, Plus, Pencil, X, Loader2, Check, Trash2 } from "lucide-react";
+import { getClients, createClient, updateClient, deleteClient } from "@/lib/actions/client";
 
 type Cliente = {
   id: string; nombre: string; nif: string; domicilio: string; iban: string;
@@ -74,6 +74,17 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
     }
   }
 
+  async function eliminar(c: Cliente) {
+    if (!confirm(`¿Eliminar al cliente "${c.nombre}" y TODOS sus documentos y carpetas? Esta acción es permanente.`)) return;
+    try {
+      await deleteClient(c.id);
+      if (selectedId === c.id) onSelect(null);
+      await recargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo eliminar");
+    }
+  }
+
   const inputCls = "w-full text-sm px-2.5 py-1.5 rounded-lg border border-gray-200 focus:border-[var(--color-brand-primary)] outline-none";
 
   return (
@@ -116,9 +127,12 @@ export function ClientesSidebar({ selectedId, onSelect }: { selectedId: string |
 
       {sel && (
         <div className="p-3 border-t border-gray-100 text-xs text-gray-600 flex flex-col gap-0.5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <span className="font-semibold text-gray-900 truncate">{sel.nombre}</span>
-            <button onClick={() => abrirEditar(sel)} className="flex items-center gap-1 text-[var(--color-brand-primary)] hover:underline shrink-0"><Pencil size={12} /> Editar</button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => abrirEditar(sel)} className="flex items-center gap-1 text-[var(--color-brand-primary)] hover:underline"><Pencil size={12} /> Editar</button>
+              <button onClick={() => eliminar(sel)} className="flex items-center gap-1 text-red-500 hover:underline" title="Eliminar cliente"><Trash2 size={12} /></button>
+            </div>
           </div>
           <span className="truncate">📧 {sel.email || "—"}</span>
           <span className="truncate">📞 {sel.telefono || "—"}</span>

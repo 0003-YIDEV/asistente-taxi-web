@@ -47,7 +47,45 @@ export async function createClient(formData: {
   });
 
   revalidatePath("/");
-  
+  revalidatePath("/boveda");
+
+  return {
+    ...client,
+    nif: decryptField(client.nifEnc),
+    iban: decryptField(client.ibanEnc),
+  };
+}
+
+export async function updateClient(
+  id: string,
+  formData: {
+    nombre: string;
+    nif: string;
+    domicilio: string;
+    iban: string;
+    email: string;
+    telefono: string;
+    numLicencia: string;
+    matricula: string;
+    regimen: string;
+  },
+) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("No autorizado");
+
+  // Verificar propiedad del cliente
+  const existing = await db.client.findFirst({ where: { id, userId: session.user.id }, select: { id: true } });
+  if (!existing) throw new Error("Cliente no encontrado o no autorizado");
+
+  const { nif, iban, ...rest } = formData;
+  const client = await db.client.update({
+    where: { id },
+    data: { ...rest, nifEnc: encryptField(nif), ibanEnc: encryptField(iban) },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/boveda");
+
   return {
     ...client,
     nif: decryptField(client.nifEnc),

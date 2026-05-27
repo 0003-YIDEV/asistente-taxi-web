@@ -7,7 +7,7 @@ import {
   LayoutGrid, List, Download, Trash2, Pencil, Home, X, Loader2, ChevronRight,
   FolderInput, SlidersHorizontal,
 } from "lucide-react";
-import { ClientSelector } from "@/components/ClientSelector";
+import { ClientesSidebar } from "@/components/ClientesSidebar";
 import {
   listarCarpetas, listarDocumentos, subirDocumento, descargarDocumento,
   borrarDocumento, crearCarpeta, renombrarCarpeta, borrarCarpeta,
@@ -290,49 +290,51 @@ export function BovedaExplorer() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Barra superior */}
-      <div className="flex flex-wrap items-center gap-2 justify-between">
-        <div className="flex items-center gap-2">
+    <div className="flex gap-4 items-start">
+      {/* Sidebar de clientes (estilo Drive) */}
+      <ClientesSidebar selectedId={clientId} onSelect={seleccionarCliente} />
+
+      {/* Panel principal: explorador */}
+      <div className="flex-1 min-w-0 flex flex-col gap-4">
+        {/* Barra superior */}
+        <div className="flex flex-wrap items-center gap-2 justify-between">
           <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
             <Home size={15} /> Inicio
           </Link>
-          <ClientSelector selectedId={clientId} onSelect={seleccionarCliente} />
-        </div>
-        {clientId && (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1">
-              <Search size={14} className="text-gray-400" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && ejecutarBusqueda()}
-                placeholder="Buscar…"
-                className="text-sm outline-none w-32"
-              />
+          {clientId && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                <Search size={14} className="text-gray-400" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && ejecutarBusqueda()}
+                  placeholder="Buscar…"
+                  className="text-sm outline-none w-32"
+                />
+              </div>
+              <button onClick={() => setVista(vista === "lista" ? "cuadricula" : "lista")} className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50" title="Cambiar vista">
+                {vista === "lista" ? <LayoutGrid size={16} /> : <List size={16} />}
+              </button>
+              <button onClick={nuevaCarpeta} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <FolderPlus size={15} /> Carpeta
+              </button>
+              <button onClick={() => inputRef.current?.click()} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-sm font-semibold hover:opacity-90">
+                <Upload size={15} /> Subir
+              </button>
+              <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
             </div>
-            <button onClick={() => setVista(vista === "lista" ? "cuadricula" : "lista")} className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50" title="Cambiar vista">
-              {vista === "lista" ? <LayoutGrid size={16} /> : <List size={16} />}
-            </button>
-            <button onClick={nuevaCarpeta} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              <FolderPlus size={15} /> Carpeta
-            </button>
-            <button onClick={() => inputRef.current?.click()} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-sm font-semibold hover:opacity-90">
-              <Upload size={15} /> Subir
-            </button>
-            <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
-          </div>
+          )}
+        </div>
+
+        {!clientId && (
+          <p className="text-sm text-gray-500 bg-white border border-gray-100 rounded-xl p-8 text-center">
+            Selecciona un cliente en la barra lateral (o crea uno nuevo) para ver su bóveda documental.
+          </p>
         )}
-      </div>
 
-      {!clientId && (
-        <p className="text-sm text-gray-500 bg-white border border-gray-100 rounded-xl p-8 text-center">
-          Selecciona un cliente para ver su bóveda documental.
-        </p>
-      )}
-
-      {clientId && (
-        <>
+        {clientId && (
+          <>
           {/* Breadcrumb */}
           <div className="flex items-center gap-1 text-sm flex-wrap">
             {ruta.map((seg, i) => (
@@ -431,6 +433,8 @@ export function BovedaExplorer() {
           </div>
         </>
       )}
+      </div>
+      {/* fin panel principal */}
 
       {/* Modal preview */}
       {preview && (

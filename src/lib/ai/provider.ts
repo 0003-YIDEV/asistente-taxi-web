@@ -5,9 +5,15 @@
 
 export type ChatMsg = { rol: "user" | "assistant"; texto: string };
 
+// Declaración de herramienta (function-calling). `parameters` = JSON Schema.
+export type Herramienta = { name: string; description: string; parameters: Record<string, unknown> };
+export type LlamadaHerramienta = { name: string; args: Record<string, unknown> };
+// Respuesta del modelo: texto y/o llamadas a herramientas que el HUMANO confirmará.
+export type RespuestaIA = { texto: string; llamadas: LlamadaHerramienta[] };
+
 export class IAError extends Error {}
 
-export async function chatIA(opts: { system: string; mensajes: ChatMsg[] }): Promise<string> {
+export async function chatIA(opts: { system: string; mensajes: ChatMsg[]; tools?: Herramienta[] }): Promise<RespuestaIA> {
   const provider = (process.env.AI_PROVIDER ?? "none").toLowerCase();
   switch (provider) {
     case "gemini":
@@ -19,13 +25,13 @@ export async function chatIA(opts: { system: string; mensajes: ChatMsg[] }): Pro
 }
 
 // ── Backend Gemini (Google AI Studio) vía REST, sin dependencias ──
-async function chatGemini({ system, mensajes }: { system: string; mensajes: ChatMsg[] }): Promise<string> {
+async function chatGemini({ system, mensajes, tools }: { system: string; mensajes: ChatMsg[]; tools?: Herramienta[] }): Promise<RespuestaIA> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new IAError("Falta GEMINI_API_KEY en el entorno.");
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-  const body = {
+  const body: Record<string, unknown> = {
     systemInstruction: { parts: [{ text: system }] },
     contents: mensajes.map((m) => ({
       role: m.rol === "assistant" ? "model" : "user",
@@ -33,6 +39,7 @@ async function chatGemini({ system, mensajes }: { system: string; mensajes: Chat
     })),
     generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
   };
+  if (tools?.length) body.tools = [{ functionDeclarations: tools }];
 
   // Reintentos con backoff ante errores transitorios (429 cuota, 503 saturación).
   const REINTENTABLE = new Set([429, 503]);
@@ -57,11 +64,15 @@ async function chatGemini({ system, mensajes }: { system: string; mensajes: Chat
   if (!res || !res.ok) throw new IAError("El asistente no está disponible. Prueba de nuevo en unos segundos.");
 
   const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    candidates?: { content?: { parts?: { text?: string; functionCall?: { name: string; args?: Record<string, unknown> } }[] } }[];
     promptFeedback?: { blockReason?: string };
   };
   if (data.promptFeedback?.blockReason) throw new IAError(`Respuesta bloqueada por el proveedor: ${data.promptFeedback.blockReason}`);
-  const texto = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("").trim();
-  if (!texto) throw new IAError("El proveedor de IA no devolvió respuesta.");
-  return texto;
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const texto = parts.map((p) => p.text ?? "").join("").trim();
+  const llamadas = parts
+    .filter((p) => p.functionCall)
+    .map((p) => ({ name: p.functionCall!.name, args: p.functionCall!.args ?? {} }));
+  if (!texto && llamadas.length === 0) throw new IAError("El proveedor de IA no devolvió respuesta.");
+  return { texto, llamadas };
 }

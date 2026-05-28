@@ -12,7 +12,7 @@ import {
   crearExpediente, marcarPaso, abandonarExpediente, reabrirExpediente, borrarExpediente,
   guardarDatosExpediente, subirOutput, subirAportado, vincularDocExistente, desvincularDoc, listarDocsCliente,
 } from "@/lib/actions/expedientes";
-import { setContextoTramite } from "@/lib/asistente-contexto";
+import { setContextoTramite, useSeñalRefresco } from "@/lib/asistente-contexto";
 
 type ExpedienteResumen = {
   id: string; estado: string; pasoActual: number; workflowNombre: string;
@@ -59,6 +59,14 @@ export function ExpedientesWizard() {
     setContextoTramite(abierto ? { expedienteId: abierto.id, nombre: abierto.workflow.nombre } : null);
     return () => setContextoTramite(null);
   }, [abierto]);
+
+  // Señal de refresco: cuando el asistente ejecuta una acción (p. ej. marcar un paso),
+  // re-fetcha el expediente abierto para que la vista refleje el cambio al instante.
+  const señalRefresco = useSeñalRefresco();
+  useEffect(() => {
+    if (señalRefresco > 0 && abierto) refrescarAbierto();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [señalRefresco]);
 
   async function recargarExpedientes(cid: string) {
     setExpedientes((await listarExpedientes(cid)) as ExpedienteResumen[]);

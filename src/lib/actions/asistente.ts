@@ -2,7 +2,8 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { chatIA, IAError, type ChatMsg } from "@/lib/ai/provider";
+import { chatIA, IAError, type ChatMsg, type Herramienta } from "@/lib/ai/provider";
+import type { AccionTramite } from "@/lib/actions/asistente-acciones";
 import { appendAudit } from "@/lib/audit";
 
 const NIVEL_TXT: Record<string, string> = { auto: "automatizable", asistido: "asistido", humano: "requiere persona" };
@@ -17,6 +18,38 @@ const BASE_SISTEMA = [
   "NUNCA pidas ni manejes datos personales del cliente (NIF, IBAN, datos de salud): solo orientas sobre el procedimiento.",
 ].join("\n");
 
+// Herramienta que el modelo puede PROPONER (el humano confirma antes de ejecutar).
+// Solo se ofrece cuando el asesor está dentro de un trámite concreto.
+const TOOL_MARCAR_PASO: Herramienta = {
+  name: "marcar_paso",
+  description:
+    "Marca un paso del trámite actual como hecho, saltado o pendiente. Úsalo cuando el asesor confirme que ha completado o quiere saltar un paso concreto. El paso se identifica por su número de orden (empezando en 1), tal como aparece en la lista de pasos del contexto.",
+  parameters: {
+    type: "object",
+    properties: {
+      orden: { type: "integer", description: "Número del paso (1-based), tal como aparece en la lista." },
+      estado: { type: "string", enum: ["hecho", "saltado", "pendiente"], description: "Nuevo estado del paso." },
+    },
+    required: ["orden", "estado"],
+  },
+};
+
+// Traduce las llamadas del modelo a acciones validadas. Descarta lo que no cuadre:
+// el modelo propone, pero los argumentos se validan aquí antes de ofrecérselos al humano.
+function mapearAcciones(llamadas: { name: string; args: Record<string, unknown> }[]): AccionTramite[] {
+  const out: AccionTramite[] = [];
+  for (const ll of llamadas) {
+    if (ll.name === "marcar_paso") {
+      const orden = Number(ll.args.orden);
+      const estado = String(ll.args.estado);
+      if (Number.isInteger(orden) && orden >= 1 && (estado === "hecho" || estado === "saltado" || estado === "pendiente")) {
+        out.push({ tipo: "marcar_paso", orden, estado, etiqueta: `Marcar paso ${orden} como ${estado}` });
+      }
+    }
+  }
+  return out;
+}
+
 // Asistente flotante global. Si recibe expedienteId, añade el contexto de ESE trámite
 // (estructura, NO datos del cliente). Si no, da ayuda general sobre los trámites disponibles.
 // RGPD: al modelo solo va estructura de procedimientos + la pregunta. Nunca datos de cliente.
@@ -29,6 +62,7 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
   if (!pregunta) throw new Error("Mensaje vacío");
 
   let contexto = "";
+  let expActivo: string | null = null; // expediente del usuario confirmado → habilita las acciones
 
   if (expedienteId) {
     // Contexto del trámite abierto (con comprobación de propiedad).
@@ -41,6 +75,7 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
       },
     });
     if (exp && exp.client.userId === userId) {
+      expActivo = exp.id;
       const pasosTxt = exp.pasos
         .map((p) => `${p.orden + 1}. [${NIVEL_TXT[p.nivel] ?? p.nivel}] ${p.accion}${p.gate ? ` (condición: ${p.gate})` : ""} — ${p.estado}`)
         .join("\n");
@@ -53,6 +88,7 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
         "Pasos:",
         pasosTxt,
         `El asesor está en el paso ${exp.pasoActual + 1}.`,
+        "Si el asesor confirma que ha completado o quiere saltar un paso concreto, USA la herramienta marcar_paso (no lo des por hecho escribiendo solo texto). Refiere el paso por su número de orden.",
       ].filter(Boolean).join("\n");
     }
   }
@@ -83,10 +119,15 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
   const system = BASE_SISTEMA + "\n" + contexto;
   const mensajes: ChatMsg[] = [...historial.slice(-10), { rol: "user", texto: pregunta }];
 
+  // Solo dentro de un trámite del usuario se ofrecen acciones (function-calling).
+  const tools = expActivo ? [TOOL_MARCAR_PASO] : undefined;
+
   try {
-    const respuesta = await chatIA({ system, mensajes });
+    const { texto, llamadas } = await chatIA({ system, mensajes, tools });
+    const acciones = expActivo ? mapearAcciones(llamadas) : [];
     await appendAudit({ actorId: userId, actorEmail: s.user.email ?? null, action: "ASISTENTE_QUERY", entity: expedienteId ? "Expediente" : "App", entityId: expedienteId ?? null });
-    return { ok: true as const, respuesta };
+    const respuesta = texto || (acciones.length ? "Te propongo esta acción — revísala y confírmala:" : "");
+    return { ok: true as const, respuesta, acciones };
   } catch (e) {
     if (e instanceof IAError) return { ok: false as const, error: e.message };
     return { ok: false as const, error: "Error inesperado del asistente." };

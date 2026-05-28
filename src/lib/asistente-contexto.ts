@@ -24,3 +24,19 @@ function getSnapshot() {
 export function useContextoTramite(): ContextoTramite {
   return useSyncExternalStore(subscribe, getSnapshot, () => null);
 }
+
+// Señal de refresco: el chat la dispara tras ejecutar una acción; la vista del
+// trámite la escucha y se re-fetcha para reflejar el cambio (p. ej. un paso marcado).
+let señal = 0;
+const señalListeners = new Set<() => void>();
+export function pedirRefrescoTramite() {
+  señal++;
+  señalListeners.forEach((l) => l());
+}
+function subscribeSeñal(l: () => void) {
+  señalListeners.add(l);
+  return () => señalListeners.delete(l);
+}
+export function useSeñalRefresco(): number {
+  return useSyncExternalStore(subscribeSeñal, () => señal, () => 0);
+}

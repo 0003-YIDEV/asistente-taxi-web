@@ -4,11 +4,12 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Sparkles, Send, X, Loader2 } from "lucide-react";
+import { Sparkles, Send, X, Loader2, Check, AlertTriangle } from "lucide-react";
 import { asistenteGlobal } from "@/lib/actions/asistente";
-import { useContextoTramite } from "@/lib/asistente-contexto";
+import { ejecutarAccionTramite, type AccionTramite } from "@/lib/actions/asistente-acciones";
+import { useContextoTramite, pedirRefrescoTramite } from "@/lib/asistente-contexto";
 
-type Msg = { rol: "user" | "assistant"; texto: string };
+type Msg = { rol: "user" | "assistant"; texto: string; acciones?: AccionTramite[] };
 
 export function AsistenteFlotante() {
   const [abierto, setAbierto] = useState(false);
@@ -16,6 +17,7 @@ export function AsistenteFlotante() {
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accionEstado, setAccionEstado] = useState<Record<string, "run" | "ok" | "err">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const contexto = useContextoTramite();
   const router = useRouter();
@@ -28,13 +30,28 @@ export function AsistenteFlotante() {
     setInput(""); setEnviando(true); setError(null);
     try {
       const res = await asistenteGlobal(q, historial, contexto?.expedienteId);
-      if (res.ok) setMensajes((m) => [...m, { rol: "assistant", texto: res.respuesta }]);
+      if (res.ok) setMensajes((m) => [...m, { rol: "assistant", texto: res.respuesta, acciones: res.acciones }]);
       else setError(res.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
       setEnviando(false);
       requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }));
+    }
+  }
+
+  // El humano confirma una acción propuesta → se ejecuta server-side y se refresca el trámite.
+  async function confirmar(key: string, accion: AccionTramite) {
+    if (!contexto?.expedienteId || accionEstado[key]) return;
+    setAccionEstado((s) => ({ ...s, [key]: "run" }));
+    try {
+      const r = await ejecutarAccionTramite(contexto.expedienteId, accion);
+      setAccionEstado((s) => ({ ...s, [key]: "ok" }));
+      setMensajes((m) => [...m, { rol: "assistant", texto: r.mensaje }]);
+      pedirRefrescoTramite();
+    } catch (e) {
+      setAccionEstado((s) => ({ ...s, [key]: "err" }));
+      setError(e instanceof Error ? e.message : "No se pudo ejecutar la acción");
     }
   }
 
@@ -105,6 +122,31 @@ export function AsistenteFlotante() {
                   >
                     {m.texto}
                   </ReactMarkdown>
+                  {m.acciones && m.acciones.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {m.acciones.map((a, ai) => {
+                        const key = `${i}:${ai}`;
+                        const st = accionEstado[key];
+                        return (
+                          <button
+                            key={ai}
+                            onClick={() => confirmar(key, a)}
+                            disabled={st === "run" || st === "ok"}
+                            className={`flex items-center gap-1.5 text-xs font-semibold rounded-lg px-2.5 py-1.5 border transition self-start ${
+                              st === "ok"
+                                ? "border-green-200 bg-green-50 text-green-700"
+                                : st === "err"
+                                  ? "border-red-200 bg-red-50 text-red-700"
+                                  : "border-[var(--color-brand-primary)] text-[var(--color-brand-primary)] hover:bg-blue-50"
+                            }`}
+                          >
+                            {st === "ok" ? <Check size={13} /> : st === "run" ? <Loader2 size={13} className="animate-spin" /> : st === "err" ? <AlertTriangle size={13} /> : <Sparkles size={13} />}
+                            {st === "ok" ? "Hecho" : st === "run" ? "Aplicando…" : a.etiqueta}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ),
             )}

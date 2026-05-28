@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, ChevronDown, ArrowLeft, Home, Pencil } from "lucide-react";
@@ -180,6 +180,20 @@ export function ProcedimientosViewer({ workflows, canEdit = false }: { workflows
   const [procAbierto, setProcAbierto] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
+  // Deep-link desde el chat: /procedimientos?wf=ID abre ese trámite y baja a él.
+  useEffect(() => {
+    const wf = new URLSearchParams(window.location.search).get("wf");
+    if (!wf) return;
+    const target = workflows.find((w) => w.id === wf);
+    if (!target) return;
+    setServicioAbierto(target.servicioId);
+    setProcAbierto(wf);
+    const t = setTimeout(() => {
+      document.getElementById(`wf-${wf}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [workflows]);
+
   return (
     <div className="flex flex-col gap-5">
       {/* Barra de navegación */}
@@ -219,19 +233,20 @@ export function ProcedimientosViewer({ workflows, canEdit = false }: { workflows
             {abierto && (
               <div className="px-3 pb-3 flex flex-col gap-2 border-t border-gray-50 pt-3">
                 {workflowsServicio.map((w) => (
-                  <WorkflowCard
-                    key={w.id}
-                    w={w}
-                    open={procAbierto === w.id}
-                    onToggle={() => setProcAbierto(procAbierto === w.id ? null : w.id)}
-                    canEdit={canEdit}
-                    editing={editId === w.id}
-                    onEdit={() => {
-                      setEditId(w.id);
-                      setProcAbierto(w.id);
-                    }}
-                    onCloseEdit={() => setEditId(null)}
-                  />
+                  <div key={w.id} id={`wf-${w.id}`} className="scroll-mt-4">
+                    <WorkflowCard
+                      w={w}
+                      open={procAbierto === w.id}
+                      onToggle={() => setProcAbierto(procAbierto === w.id ? null : w.id)}
+                      canEdit={canEdit}
+                      editing={editId === w.id}
+                      onEdit={() => {
+                        setEditId(w.id);
+                        setProcAbierto(w.id);
+                      }}
+                      onCloseEdit={() => setEditId(null)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

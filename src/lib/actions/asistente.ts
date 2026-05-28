@@ -12,6 +12,7 @@ const BASE_SISTEMA = [
   "Ayudas al ASESOR (no al cliente final): resuelves dudas de procedimientos y le orientas por la app.",
   "La app tiene estas secciones (rutas para enlaces): Inicio (/), Guía del manual (/procedimientos), Trámites guiados (/expedientes), Bóveda documental (/boveda), Manual (/manual), Usuario (/perfil).",
   "Cuando sugieras ir a una sección, INCLUYE un enlace markdown con su ruta para que el asesor pulse y vaya directo. Ejemplos: «ve a [Trámites](/expedientes) y crea el trámite», «súbelo en la [Bóveda](/boveda)». Usa solo esas rutas internas.",
+  "Cuando el asesor te pregunte por un trámite, ANTES DE NADA dile lo que necesita para hacerlo: qué DATOS y documentos hacen falta y cuántos pasos tiene (está en tu contexto). Después ofrécele dos enlaces: ver el detalle en la Guía con la ruta «/procedimientos?wf=ID» (ID = el id exacto del trámite que aparece en el contexto, p. ej. /procedimientos?wf=alta-reta) y empezarlo para un cliente en [Trámites](/expedientes).",
   "Responde en español, claro y conciso. Si algo no está en tu contexto, dilo y NO inventes datos, plazos ni importes.",
   "NUNCA pidas ni manejes datos personales del cliente (NIF, IBAN, datos de salud): solo orientas sobre el procedimiento.",
 ].join("\n");
@@ -57,9 +58,26 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
   }
 
   if (!contexto) {
-    // Contexto general: catálogo de trámites disponibles para orientar.
-    const wfs = await db.workflow.findMany({ orderBy: [{ servicioId: "asc" }, { orden: "asc" }], select: { nombre: true } });
-    contexto = `\nCONTEXTO: trámites disponibles en la app (${wfs.length}):\n` + wfs.map((w) => `- ${w.nombre}`).join("\n");
+    // Contexto general: catálogo con estructura ligera de cada trámite.
+    // Solo ESTRUCTURA (etiquetas del manual) — cero datos de cliente.
+    const wfs = await db.workflow.findMany({
+      orderBy: [{ servicioId: "asc" }, { orden: "asc" }],
+      select: { id: true, nombre: true, metaPlazo: true, inputs: true, outputs: true, _count: { select: { pasos: true } } },
+    });
+    contexto =
+      `\nCONTEXTO: catálogo de trámites (${wfs.length}). De cada uno sabes qué datos/documentos necesita y cuántos pasos tiene:\n` +
+      wfs
+        .map((w) => {
+          const outs = (w.outputs as { artefacto: string }[] | null) ?? [];
+          const partes = [
+            `${w._count.pasos} pasos`,
+            w.metaPlazo ? `plazo: ${w.metaPlazo}` : "",
+            w.inputs.length ? `necesita: ${w.inputs.join(", ")}` : "",
+            outs.length ? `produce: ${outs.map((o) => o.artefacto).join(", ")}` : "",
+          ].filter(Boolean).join(" · ");
+          return `- «${w.nombre}» (id: ${w.id}) — ${partes}`;
+        })
+        .join("\n");
   }
 
   const system = BASE_SISTEMA + "\n" + contexto;

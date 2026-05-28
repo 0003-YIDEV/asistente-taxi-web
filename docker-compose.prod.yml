@@ -39,6 +39,11 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       # Bóveda documental: ficheros cifrados en un volumen persistente (NO efímero).
       STORAGE_DIR: /data/storage
+      # Asistente IA (Gemini AI Studio para pruebas). Valores reales en el .env del VPS.
+      # RGPD: solo estructura de trámites al modelo, nunca datos de cliente.
+      AI_PROVIDER: ${AI_PROVIDER}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
     volumes:
       - storage_prod:/data/storage
     labels:

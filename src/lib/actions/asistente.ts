@@ -34,6 +34,20 @@ const TOOL_MARCAR_PASO: Herramienta = {
   },
 };
 
+const TOOL_RELLENAR: Herramienta = {
+  name: "rellenar_dato",
+  description:
+    "Rellena un dato NO SENSIBLE del trámite actual (p. ej. fecha, provincia, mutua, base de cotización). NUNCA la uses para IBAN, NIF, DNI, número de cuenta o tarjeta: esos los rellena el asesor a mano en la pestaña Datos. El campo debe coincidir exactamente con uno de los 'Datos necesarios' del trámite.",
+  parameters: {
+    type: "object",
+    properties: {
+      campo: { type: "string", description: "Nombre exacto del dato, tal como aparece en 'Datos necesarios'." },
+      valor: { type: "string", description: "Valor a rellenar (solo datos NO sensibles)." },
+    },
+    required: ["campo", "valor"],
+  },
+};
+
 // Traduce las llamadas del modelo a acciones validadas. Descarta lo que no cuadre:
 // el modelo propone, pero los argumentos se validan aquí antes de ofrecérselos al humano.
 function mapearAcciones(llamadas: { name: string; args: Record<string, unknown> }[]): AccionTramite[] {
@@ -44,6 +58,13 @@ function mapearAcciones(llamadas: { name: string; args: Record<string, unknown> 
       const estado = String(ll.args.estado);
       if (Number.isInteger(orden) && orden >= 1 && (estado === "hecho" || estado === "saltado" || estado === "pendiente")) {
         out.push({ tipo: "marcar_paso", orden, estado, etiqueta: `Marcar paso ${orden} como ${estado}` });
+      }
+    } else if (ll.name === "rellenar_dato") {
+      const campo = String(ll.args.campo ?? "").trim();
+      const valor = String(ll.args.valor ?? "");
+      // Guard RGPD: descarta propuestas sobre campos sensibles antes de ofrecerlas al humano.
+      if (campo && !/iban|cuenta|tarjeta|nif|dni/i.test(campo)) {
+        out.push({ tipo: "rellenar_dato", campo, valor, etiqueta: `Rellenar «${campo}» con «${valor}»` });
       }
     }
   }
@@ -109,6 +130,7 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
         `El asesor está en el paso ${exp.pasoActual + 1}.`,
         "La herramienta marcar_paso SOLO afecta a ESTE trámite. Si el asesor pregunta por OTRO trámite (p. ej. el 303 estando en el alta RETA), respóndele con normalidad usando el catálogo y NO uses marcar_paso.",
         "Si el asesor confirma que ha completado o quiere saltar un paso de ESTE trámite, USA la herramienta marcar_paso (no lo des por hecho escribiendo solo texto). Refiere el paso por su número de orden.",
+        "Si el asesor te da un dato NO sensible de ESTE trámite (fecha, provincia, mutua, base…), usa rellenar_dato con el nombre exacto del campo. NUNCA rellenes IBAN/NIF/DNI/cuenta por el chat: dile que lo ponga en la pestaña Datos.",
       ].filter(Boolean).join("\n");
     }
   }
@@ -119,7 +141,7 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
   const mensajes: ChatMsg[] = [...historial.slice(-10), { rol: "user", texto: pregunta }];
 
   // Solo dentro de un trámite del usuario se ofrecen acciones (function-calling).
-  const tools = expActivo ? [TOOL_MARCAR_PASO] : undefined;
+  const tools = expActivo ? [TOOL_MARCAR_PASO, TOOL_RELLENAR] : undefined;
 
   try {
     const { texto, llamadas } = await chatIA({ system, mensajes, tools });

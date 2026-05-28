@@ -246,6 +246,25 @@ export async function guardarDatosExpediente(expedienteId: string, datos: Record
   revalidatePath("/expedientes");
 }
 
+// Rellena UN campo de los datos del trámite (lo usa el asistente, con confirmación humana).
+// Guardarraíl RGPD: rechaza campos sensibles — esos se rellenan a mano en la pestaña Datos,
+// nunca por el chat (no deben pasar por el LLM). Merge: conserva el resto de datos.
+export async function rellenarDatoExpediente(expedienteId: string, campo: string, valor: string) {
+  const { id, email } = await sesion();
+  const exp = await expedienteDe(expedienteId, id);
+  if (SENSIBLE.test(campo) || /\bnif\b|dni/i.test(campo)) {
+    throw new Error("Ese dato es sensible: rellénalo en la pestaña Datos, no por el chat.");
+  }
+  const wf = await db.workflow.findUnique({ where: { id: exp.workflowId }, select: { inputs: true } });
+  if (!wf || !wf.inputs.includes(campo)) throw new Error(`«${campo}» no es un dato de este trámite.`);
+  const actuales = descifrarDatos(exp.datos);
+  actuales[campo] = valor;
+  await db.expediente.update({ where: { id: expedienteId }, data: { datos: cifrarDatos(actuales) } });
+  await appendAudit({ actorId: id, actorEmail: email, action: "EXPEDIENTE_DATO_IA", entity: "Expediente", entityId: expedienteId, meta: { campo } });
+  revalidatePath("/expedientes");
+  return { campo, valor };
+}
+
 // ── Documentos del trámite ─────────────────────────────────────────
 // Documentos activos del cliente (para el selector "elegir de la Bóveda").
 export async function listarDocsCliente(clientId: string) {

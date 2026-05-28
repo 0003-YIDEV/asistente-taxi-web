@@ -2,13 +2,14 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { marcarPaso } from "@/lib/actions/expedientes";
+import { marcarPaso, rellenarDatoExpediente } from "@/lib/actions/expedientes";
 
 // Acción que el asistente PROPONE y el humano CONFIRMA antes de ejecutar.
 // Principio "operate, don't extract": el modelo decide el QUÉ (por nombre/orden);
 // el expedienteId lo pone la UI (no el modelo) y los valores sensibles NUNCA vienen del modelo.
 export type AccionTramite =
-  | { tipo: "marcar_paso"; orden: number; estado: "hecho" | "saltado" | "pendiente"; etiqueta: string };
+  | { tipo: "marcar_paso"; orden: number; estado: "hecho" | "saltado" | "pendiente"; etiqueta: string }
+  | { tipo: "rellenar_dato"; campo: string; valor: string; etiqueta: string };
 
 const ESTADOS_OK = new Set(["hecho", "saltado", "pendiente"]);
 
@@ -39,6 +40,13 @@ export async function ejecutarAccionTramite(expedienteId: string, accion: Accion
       if (!paso) throw new Error(`No existe el paso ${accion.orden} en este trámite`);
       await marcarPaso(paso.id, accion.estado);
       return { ok: true as const, mensaje: `Paso ${accion.orden} marcado como ${accion.estado}.` };
+    }
+    case "rellenar_dato": {
+      const campo = (accion.campo ?? "").trim();
+      if (!campo || typeof accion.valor !== "string") throw new Error("Campo o valor no válido");
+      // rellenarDatoExpediente revalida propiedad y rechaza campos sensibles.
+      const r = await rellenarDatoExpediente(expedienteId, campo, accion.valor);
+      return { ok: true as const, mensaje: `«${r.campo}» rellenado.` };
     }
     default:
       throw new Error("Acción no soportada");

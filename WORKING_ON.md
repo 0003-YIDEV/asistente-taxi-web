@@ -27,7 +27,14 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
     datos de cliente); el chat enlaza a `/procedimientos?wf=ID` y la Guía abre ese trámite
     y baja a él (`ProcedimientosViewer` lee `?wf=`). **EN MAIN** (`b5e0e48`). ⚠️ deep-link
     open+scroll no click-testeado (sin sesión); pre-flight depende de `GEMINI_API_KEY` en vivo.
-  - **Siguiente corte:** rellenar trámite con confirmación (function-calling).
+  - ✅ **Escalón 2 — function-calling (VALIDADO en vivo)**: `marcar_paso` y `rellenar_dato`
+    como chips confirmables. El modelo decide por orden/nombre; el `expedienteId` lo pone la
+    UI, no el modelo; valores sensibles (IBAN/NIF) NUNCA pasan por el LLM (guard en prompt +
+    mapper + server action). `provider.ts` parsea function-calling de Gemini; señal de refresco
+    pub/sub actualiza la vista al ejecutar. Substrato: `src/lib/actions/asistente-acciones.ts`.
+  - **Modelo IA:** por defecto `gemini-3.1-flash-lite` (plan gratuito: 500 req/día y soporta
+    tools; `gemini-2.5-flash` solo 20/día). El asistente conoce la fecha de hoy (Europe/Madrid).
+  - **Siguiente corte (escalón 3):** encadenar pasos auto + más conexión con datos de empresa.
 - Migraciones nuevas aplicadas en prod: `add_expediente`, `add_expediente_datos_docs`.
 - Plan de la conexión: `docs/PLAN-TRAMITES-BOVEDA.md` (council, principio "acciones =
   substrato del agente").

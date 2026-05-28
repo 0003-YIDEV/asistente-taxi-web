@@ -1,7 +1,7 @@
 # ROADMAP — Gestión fiscal vertical + IA para taxistas autónomos
 
 > Fuente de verdad de la dirección del producto. Actualizar al cerrar cada etapa.
-> Última actualización: 2026-05-27.
+> Última actualización: 2026-05-28.
 
 ## Visión
 
@@ -60,10 +60,30 @@ no contabilidad de doble partida (un taxista en módulos no lleva contabilidad).
 ### Etapa 1 · Arranque IA (OCR + Copiloto A)
 - **OCR funcional** — `Tesseract.js` local + `pdf-parse` para PDFs con capa de texto.
   Extrae texto de cualquier documento subido a la Bóveda. 100% local (RGPD).
-  *Base sobre la que se monta la Etapa 3 (C).*
-- **Copiloto A** — chat que asesora usando el **manual + los 39 workflows en BD**, RAG
-  sobre `pgvector`, vía **API europea** (Mistral recomendado por el council; proveedor por
-  decidir), a través de la **capa agnóstica**. **Cero datos de cliente.** Copiloto interno.
+  *Base sobre la que se monta la Etapa 3 (C).* (pendiente)
+- ✅ **Copiloto A (HECHO)** — **asistente flotante global** consciente del contexto
+  (`AsistenteFlotante` + `asistenteGlobal` + capa agnóstica `src/lib/ai/provider.ts`).
+  Backend **Gemini** (pruebas; AI Studio del socio) intercambiable por env. Conoce el
+  catálogo de trámites y, si estás dentro de un expediente, su estructura. **Cero datos de
+  cliente** al modelo. Ver "Asistente IA — escalera de automatización" más abajo.
+
+### Asistente IA — escalera de automatización
+> El chat evoluciona de "habla" a "actúa". Modelo: cada respuesta = **texto + acciones**
+> (botones que el humano confirma). Las acciones reusan las server actions limpias
+> existentes (principio del council). Function-calling nativo del proveedor.
+
+1. ✅ **Informativo (HECHO)** — responde, orienta, conoce el contexto del trámite.
+2. **Interactivo (navegación + rellenar con un clic)** — la respuesta trae acciones:
+   🧭 *navegar* (te lleva a la página), ✏️ *rellenar dato*, ✅ *marcar paso*, 📎 *adjuntar*,
+   📄 *crear expediente*. El humano confirma cada una. *Primer corte: navegación clicable
+   (quick-win) → luego function-calling para rellenar.*
+3. **Casi-automático** — el agente encadena los pasos 🟢auto, se para en 🔴/gates.
+4. **Automático con supervisión** — de principio a fin, parando en checkpoints (gates/firma).
+- **Habilitador paralelo: OCR/extracción (Etapa 3 / forma C)** — lee un documento y propone
+  rellenar datos → alimenta los escalones 2-3.
+- **🔒 RGPD:** escalones 1-2 (sin enviar datos de cliente al modelo) pueden seguir con Gemini.
+  En cuanto el agente **lea datos de cliente para decidir** (escalón 3+), enrutar al modelo
+  RGPD-seguro vía la capa agnóstica (Mistral/IONOS/local) — nunca AI Studio gratuito.
 
 ### Etapa 2 · Núcleo fiscal (el valor del 80%)
 - **Libros-registro** — modelo `Movimiento` (ingreso/gasto/inversión), enlazado al

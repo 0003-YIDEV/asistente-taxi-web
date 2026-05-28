@@ -5,6 +5,27 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
 
 ## 0001-YIDev (Zyro / Claude)
 
+### ✅ Completado (2026-05-28) — Trámites guiados + Asistente IA
+- **Trámites guiados (wizard) + Expediente** — `/expedientes`: instancia (cliente+workflow)
+  con snapshot de pasos, estado, progreso, marcar/saltar/reabrir. Modelos `Expediente` +
+  `ExpedientePaso`. **EN MAIN y DESPLEGADO.**
+- **Trámites ↔ Bóveda + datos** — pestañas Pasos · Datos · Documentos. `Expediente.datos`
+  (JSON, IBAN cifrado) + `ExpedienteDocumento`. Pre-rellenado desde ficha del cliente,
+  auto-crear carpetas de outputs, subir output→su carpeta, adjuntar/elegir de la Bóveda.
+  Indicador de completitud. **EN MAIN y DESPLEGADO.**
+- **Asistente IA flotante global** — burbuja en todas las páginas, consciente del contexto
+  (sabe en qué trámite estás). Capa **agnóstica** `src/lib/ai/provider.ts` (backend **Gemini**
+  vía REST, intercambiable por env). `asistenteGlobal` con guardarraíl RGPD (NUNCA datos de
+  cliente al modelo). **EN MAIN.** ⚠️ Pendiente desplegar a prod: requiere `GEMINI_API_KEY`
+  en el `.env` del VPS + `AI_PROVIDER=gemini`.
+- **Escalera de automatización del chat** (ver `docs/ROADMAP.md`): 1 informativo ✅ ·
+  2 interactivo (navegación + rellenar con un clic) · 3 casi-auto · 4 auto. **Siguiente corte:
+  navegación clicable (quick-win).** Modelo: respuesta + acciones (function-calling) sobre
+  las server actions limpias.
+- Migraciones nuevas aplicadas en prod: `add_expediente`, `add_expediente_datos_docs`.
+- Plan de la conexión: `docs/PLAN-TRAMITES-BOVEDA.md` (council, principio "acciones =
+  substrato del agente").
+
 ### ✅ Completado recientemente (2026-05-27)
 - **Guía de procedimientos visual** — ✅ EN MAIN y ✅ DESPLEGADA en
   **horus.support/procedimientos**:

@@ -256,13 +256,15 @@ export async function rellenarDatoExpediente(expedienteId: string, campo: string
     throw new Error("Ese dato es sensible: rellénalo en la pestaña Datos, no por el chat.");
   }
   const wf = await db.workflow.findUnique({ where: { id: exp.workflowId }, select: { inputs: true } });
-  if (!wf || !wf.inputs.includes(campo)) throw new Error(`«${campo}» no es un dato de este trámite.`);
+  // El campo debe corresponder a un input del trámite (sin exigir mayúsculas exactas).
+  const canonico = wf?.inputs.find((i) => i.toLowerCase().trim() === campo.toLowerCase().trim());
+  if (!canonico) throw new Error(`«${campo}» no es un dato de este trámite.`);
   const actuales = descifrarDatos(exp.datos);
-  actuales[campo] = valor;
+  actuales[canonico] = valor; // guarda con la etiqueta canónica (la misma que usa la pestaña Datos)
   await db.expediente.update({ where: { id: expedienteId }, data: { datos: cifrarDatos(actuales) } });
-  await appendAudit({ actorId: id, actorEmail: email, action: "EXPEDIENTE_DATO_IA", entity: "Expediente", entityId: expedienteId, meta: { campo } });
+  await appendAudit({ actorId: id, actorEmail: email, action: "EXPEDIENTE_DATO_IA", entity: "Expediente", entityId: expedienteId, meta: { campo: canonico } });
   revalidatePath("/expedientes");
-  return { campo, valor };
+  return { campo: canonico, valor };
 }
 
 // ── Documentos del trámite ─────────────────────────────────────────

@@ -90,6 +90,7 @@ model Client {
   checklistProgress ChecklistProgress[]
   carpetas          Carpeta[]
   documentos        Documento[]
+  expedientes       Expediente[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -206,10 +207,11 @@ model Workflow {
   autoNoPuede  String[]
   outputs      Json // [{ artefacto, carpeta }]
 
-  pasos      WorkflowPaso[]
-  documentos Documento[]
-  updatedAt  DateTime       @updatedAt
-  createdAt  DateTime       @default(now())
+  pasos       WorkflowPaso[]
+  documentos  Documento[]
+  expedientes Expediente[]
+  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime       @default(now())
 
   @@index([servicioId])
 }
@@ -225,5 +227,55 @@ model WorkflowPaso {
   gate        String?
   refWorkflow String?
 
+  expedientePasos ExpedientePaso[]
+
   @@index([workflowId])
+}
+
+// --- Expediente: una instancia de (cliente + workflow) en marcha ---
+// El asistente guiado conduce el expediente paso a paso. Reanudable y auditable.
+model Expediente {
+  id         String @id @default(cuid())
+  clientId   String
+  workflowId String
+
+  estado     String    @default("en_curso") // en_curso | completado | abandonado
+  pasoActual Int       @default(0) // índice (orden) del paso en curso
+  iniciadoEn DateTime  @default(now())
+  cerradoEn  DateTime? // fecha de completado/abandonado
+
+  client   Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workflow Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  pasos    ExpedientePaso[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, estado])
+  @@index([workflowId])
+}
+
+// Estado de cada paso del expediente. Snapshot del WorkflowPaso al crear: si el workflow
+// se edita después, los expedientes en marcha NO se alteran. workflowPasoId = link blando.
+model ExpedientePaso {
+  id             String  @id @default(cuid())
+  expedienteId   String
+  workflowPasoId String? // referencia al paso original (puede borrarse → SetNull)
+
+  orden  Int // copiado del WorkflowPaso
+  accion String // snapshot del texto del paso
+  nivel  String // snapshot: "auto" | "asistido" | "humano"
+  gate   String? // snapshot de la condición de entrada, si la hay
+
+  estado       String    @default("pendiente") // pendiente | hecho | saltado | bloqueado
+  nota         String?
+  completadoEn DateTime?
+
+  expediente   Expediente    @relation(fields: [expedienteId], references: [id], onDelete: Cascade)
+  workflowPaso WorkflowPaso? @relation(fields: [workflowPasoId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expedienteId, orden])
 }

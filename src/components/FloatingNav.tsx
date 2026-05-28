@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, UserCircle, LogOut, FileText, FolderLock } from "lucide-react";
+import { BookOpen, UserCircle, LogOut, FileText, FolderLock, ClipboardList } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 export function FloatingNav() {
@@ -15,6 +15,16 @@ export function FloatingNav() {
       >
         <FileText size={15} />
         <span className="hidden sm:inline">Guía</span>
+      </Link>
+
+      {/* Trámites guiados */}
+      <Link
+        href="/expedientes"
+        className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-200"
+        title="Trámites guiados"
+      >
+        <ClipboardList size={15} />
+        <span className="hidden sm:inline">Trámites</span>
       </Link>
 
       {/* Bóveda */}

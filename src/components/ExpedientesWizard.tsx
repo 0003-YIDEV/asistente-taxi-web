@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Plus, Search, X, Loader2, ChevronLeft, Check, SkipForward, RotateCcw,
   Trash2, CircleDot, AlertTriangle, ClipboardList, Clock, FileText, FolderInput,
@@ -12,6 +12,7 @@ import {
   crearExpediente, marcarPaso, abandonarExpediente, reabrirExpediente, borrarExpediente,
   guardarDatosExpediente, subirOutput, subirAportado, vincularDocExistente, desvincularDoc, listarDocsCliente,
 } from "@/lib/actions/expedientes";
+import { setContextoTramite } from "@/lib/asistente-contexto";
 
 type ExpedienteResumen = {
   id: string; estado: string; pasoActual: number; workflowNombre: string;
@@ -52,6 +53,12 @@ export function ExpedientesWizard() {
   const [qWf, setQWf] = useState("");
   const [creando, setCreando] = useState(false);
   const [confirmState, setConfirmState] = useState<{ mensaje: string; onOk: () => void | Promise<void> } | null>(null);
+
+  // El asistente flotante "sabe dónde estás": al abrir un expediente fija su contexto.
+  useEffect(() => {
+    setContextoTramite(abierto ? { expedienteId: abierto.id, nombre: abierto.workflow.nombre } : null);
+    return () => setContextoTramite(null);
+  }, [abierto]);
 
   async function recargarExpedientes(cid: string) {
     setExpedientes((await listarExpedientes(cid)) as ExpedienteResumen[]);

@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Sparkles, Send, X, Loader2 } from "lucide-react";
 import { asistenteGlobal } from "@/lib/actions/asistente";
 import { useContextoTramite } from "@/lib/asistente-contexto";
@@ -15,6 +18,7 @@ export function AsistenteFlotante() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contexto = useContextoTramite();
+  const router = useRouter();
 
   async function enviar() {
     const q = input.trim();
@@ -73,9 +77,36 @@ export function AsistenteFlotante() {
                 </div>
               </div>
             )}
-            {mensajes.map((m, i) => (
-              <div key={i} className={`max-w-[88%] text-sm rounded-2xl px-3.5 py-2 whitespace-pre-wrap ${m.rol === "user" ? "self-end bg-[var(--color-brand-primary)] text-white" : "self-start bg-gray-100 text-gray-800"}`}>{m.texto}</div>
-            ))}
+            {mensajes.map((m, i) =>
+              m.rol === "user" ? (
+                <div key={i} className="max-w-[88%] text-sm rounded-2xl px-3.5 py-2 whitespace-pre-wrap self-end bg-[var(--color-brand-primary)] text-white">{m.texto}</div>
+              ) : (
+                <div key={i} className="max-w-[88%] text-sm rounded-2xl px-3.5 py-2 self-start bg-gray-100 text-gray-800 leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_ul]:list-disc [&_strong]:font-semibold">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children }) => {
+                        const url = href ?? "";
+                        if (url.startsWith("/")) {
+                          // Enlace interno → navega con el router y cierra el panel.
+                          return (
+                            <button
+                              onClick={() => { setAbierto(false); router.push(url); }}
+                              className="inline font-semibold text-[var(--color-brand-primary)] underline hover:opacity-80"
+                            >
+                              {children}
+                            </button>
+                          );
+                        }
+                        return <a href={url} target="_blank" rel="noreferrer" className="text-[var(--color-brand-primary)] underline">{children}</a>;
+                      },
+                    }}
+                  >
+                    {m.texto}
+                  </ReactMarkdown>
+                </div>
+              ),
+            )}
             {enviando && <div className="self-start flex items-center gap-2 text-sm text-gray-400 bg-gray-100 rounded-2xl px-3.5 py-2"><Loader2 size={14} className="animate-spin" /> Pensando…</div>}
             {error && <div className="self-start text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">⚠ {error}</div>}
           </div>

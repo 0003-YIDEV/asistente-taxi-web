@@ -19,9 +19,15 @@ _Antes de tocar algo: mira aquí + `git fetch && git log origin/main --oneline -
   cliente al modelo). **EN MAIN.** ⚠️ Pendiente desplegar a prod: requiere `GEMINI_API_KEY`
   en el `.env` del VPS + `AI_PROVIDER=gemini`.
 - **Escalera de automatización del chat** (ver `docs/ROADMAP.md`): 1 informativo ✅ ·
-  2 interactivo (navegación + rellenar con un clic) · 3 casi-auto · 4 auto. **Siguiente corte:
-  navegación clicable (quick-win).** Modelo: respuesta + acciones (function-calling) sobre
-  las server actions limpias.
+  2 interactivo (navegación + rellenar con un clic) · 3 casi-auto · 4 auto. Modelo: respuesta
+  + acciones (function-calling) sobre las server actions limpias.
+  - ✅ **Escalón 2 — navegación clicable** (panel no se cierra al navegar).
+  - ✅ **Escalón 2 — pre-flight + deep-link**: el contexto general del chat lleva ahora
+    nº pasos + plazo + datos necesarios + qué produce por trámite (solo estructura, cero
+    datos de cliente); el chat enlaza a `/procedimientos?wf=ID` y la Guía abre ese trámite
+    y baja a él (`ProcedimientosViewer` lee `?wf=`). **EN MAIN** (`b5e0e48`). ⚠️ deep-link
+    open+scroll no click-testeado (sin sesión); pre-flight depende de `GEMINI_API_KEY` en vivo.
+  - **Siguiente corte:** rellenar trámite con confirmación (function-calling).
 - Migraciones nuevas aplicadas en prod: `add_expediente`, `add_expediente_datos_docs`.
 - Plan de la conexión: `docs/PLAN-TRAMITES-BOVEDA.md` (council, principio "acciones =
   substrato del agente").

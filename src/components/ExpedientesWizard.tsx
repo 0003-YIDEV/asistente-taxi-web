@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Plus, Search, X, Loader2, ChevronLeft, Check, SkipForward, RotateCcw,
+  Plus, Search, X, Loader2, ChevronLeft, ChevronDown, Check, SkipForward, RotateCcw,
   Trash2, CircleDot, AlertTriangle, ClipboardList, Clock, FileText, FolderInput,
   Upload, FileUp, ListChecks, Database,
 } from "lucide-react";
+import { getServicios } from "@/data/servicios";
 import { ClientesSidebar } from "@/components/ClientesSidebar";
 import {
   listarExpedientes, getExpediente, listarWorkflowsDisponibles,
@@ -52,6 +53,7 @@ export function ExpedientesWizard() {
   const [workflows, setWorkflows] = useState<WfDisp[] | null>(null);
   const [qWf, setQWf] = useState("");
   const [creando, setCreando] = useState(false);
+  const [servAbierto, setServAbierto] = useState<string | null>(null); // servicio desplegado en el modal "nuevo trámite"
   const [confirmState, setConfirmState] = useState<{ mensaje: string; onOk: () => void | Promise<void> } | null>(null);
 
   // El asistente flotante "sabe dónde estás": al abrir un expediente fija su contexto.
@@ -123,6 +125,10 @@ export function ExpedientesWizard() {
   }
 
   const wfFiltrados = (workflows ?? []).filter((w) => w.nombre.toLowerCase().includes(qWf.toLowerCase()));
+  // Workflows agrupados por servicio (mismo acordeón que la Guía) para el modal "nuevo trámite".
+  const serviciosConWf = getServicios()
+    .map((s) => ({ id: s.id, numero: s.numero, nombre: s.nombre, wfs: (workflows ?? []).filter((w) => w.servicioId === s.id) }))
+    .filter((s) => s.wfs.length > 0);
 
   return (
     <div className="flex gap-4 items-start">
@@ -204,12 +210,47 @@ export function ExpedientesWizard() {
               </div>
             </div>
             <div className="flex-1 overflow-auto p-1">
-              {wfFiltrados.length === 0 ? <p className="text-xs text-gray-400 p-4 text-center">Sin resultados.</p>
-                : wfFiltrados.map((w) => (
-                  <button key={w.id} onClick={() => crear(w.id)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 text-sm text-gray-800 flex items-center gap-2">
-                    <ClipboardList size={14} className="text-gray-400 shrink-0" /> {w.nombre}
-                  </button>
-                ))}
+              {qWf ? (
+                // Con búsqueda → lista plana filtrada (atajo rápido).
+                wfFiltrados.length === 0 ? (
+                  <p className="text-xs text-gray-400 p-4 text-center">Sin resultados.</p>
+                ) : (
+                  wfFiltrados.map((w) => (
+                    <button key={w.id} onClick={() => crear(w.id)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 text-sm text-gray-800 flex items-center gap-2">
+                      <ClipboardList size={14} className="text-gray-400 shrink-0" /> {w.nombre}
+                    </button>
+                  ))
+                )
+              ) : (
+                // Sin búsqueda → acordeón por servicio (igual que la Guía).
+                <div className="flex flex-col gap-1.5">
+                  {serviciosConWf.map((s) => {
+                    const open = (servAbierto === null ? serviciosConWf[0]?.id : servAbierto) === s.id;
+                    return (
+                      <div key={s.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setServAbierto(open ? "" : s.id)}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-gray-50"
+                        >
+                          <span className="text-[11px] font-bold text-[var(--color-brand-secondary)] tabular-nums w-5 shrink-0">{String(s.numero).padStart(2, "0")}</span>
+                          <span className="flex-1 text-sm font-semibold text-gray-800 min-w-0">{s.nombre}</span>
+                          <span className="text-[11px] text-gray-400 shrink-0">{s.wfs.length}</span>
+                          <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+                        </button>
+                        {open && (
+                          <div className="px-1.5 pb-1.5 flex flex-col gap-0.5 border-t border-gray-50 pt-1.5">
+                            {s.wfs.map((w) => (
+                              <button key={w.id} onClick={() => crear(w.id)} className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 text-sm text-gray-700 flex items-center gap-2">
+                                <ClipboardList size={14} className="text-gray-400 shrink-0" /> {w.nombre}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

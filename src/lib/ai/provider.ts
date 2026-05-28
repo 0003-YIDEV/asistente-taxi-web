@@ -34,16 +34,28 @@ async function chatGemini({ system, mensajes }: { system: string; mensajes: Chat
     generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
   };
 
-  let res: Response;
-  try {
-    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  } catch {
-    throw new IAError("No se pudo contactar con el proveedor de IA.");
-  }
-  if (!res.ok) {
+  // Reintentos con backoff ante errores transitorios (429 cuota, 503 saturación).
+  const REINTENTABLE = new Set([429, 503]);
+  const MAX = 3;
+  let res: Response | null = null;
+  for (let intento = 0; intento < MAX; intento++) {
+    try {
+      res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    } catch {
+      throw new IAError("No se pudo contactar con el proveedor de IA.");
+    }
+    if (res.ok) break;
+    const ultimo = intento === MAX - 1;
+    if (REINTENTABLE.has(res.status)) {
+      if (ultimo) throw new IAError("El asistente está saturado ahora mismo (mucha demanda en el modelo). Prueba de nuevo en unos segundos.");
+      await new Promise((r) => setTimeout(r, 600 * (intento + 1))); // 0.6s, 1.2s
+      continue;
+    }
     const detalle = await res.text().catch(() => "");
-    throw new IAError(`El proveedor de IA devolvió ${res.status}. ${detalle.slice(0, 200)}`);
+    throw new IAError(`El proveedor de IA devolvió ${res.status}. ${detalle.slice(0, 160)}`);
   }
+  if (!res || !res.ok) throw new IAError("El asistente no está disponible. Prueba de nuevo en unos segundos.");
+
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
     promptFeedback?: { blockReason?: string };

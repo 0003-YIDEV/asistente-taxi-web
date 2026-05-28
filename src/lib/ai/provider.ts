@@ -28,7 +28,7 @@ export async function chatIA(opts: { system: string; mensajes: ChatMsg[]; tools?
 async function chatGemini({ system, mensajes, tools }: { system: string; mensajes: ChatMsg[]; tools?: Herramienta[] }): Promise<RespuestaIA> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new IAError("Falta GEMINI_API_KEY en el entorno.");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
   const body: Record<string, unknown> = {

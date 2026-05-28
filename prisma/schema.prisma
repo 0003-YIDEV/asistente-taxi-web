@@ -154,6 +154,8 @@ model Documento {
   carpeta  Carpeta?  @relation(fields: [carpetaId], references: [id], onDelete: SetNull)
   workflow Workflow? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
 
+  expedienteVinculos ExpedienteDocumento[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -241,12 +243,14 @@ model Expediente {
 
   estado     String    @default("en_curso") // en_curso | completado | abandonado
   pasoActual Int       @default(0) // índice (orden) del paso en curso
+  datos      Json? // datos del trámite (keyed por input); sensibles cifrados con v1.
   iniciadoEn DateTime  @default(now())
   cerradoEn  DateTime? // fecha de completado/abandonado
 
-  client   Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  workflow Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  pasos    ExpedientePaso[]
+  client     Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workflow   Workflow              @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  pasos      ExpedientePaso[]
+  documentos ExpedienteDocumento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,4 +282,21 @@ model ExpedientePaso {
   updatedAt DateTime @updatedAt
 
   @@index([expedienteId, orden])
+}
+
+// Vínculo documento ↔ expediente. rol="aportado" (lo que el trámite necesita) o
+// "generado" (lo que produce). etiqueta = el input/output al que corresponde.
+model ExpedienteDocumento {
+  id           String  @id @default(cuid())
+  expedienteId String
+  documentoId  String?
+  rol          String // "aportado" | "generado"
+  etiqueta     String? // artefacto del output o nota del input que cubre
+
+  expediente Expediente @relation(fields: [expedienteId], references: [id], onDelete: Cascade)
+  documento  Documento? @relation(fields: [documentoId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([expedienteId])
 }

@@ -88,10 +88,11 @@ export function AsistenteFlotante() {
                       a: ({ href, children }) => {
                         const url = href ?? "";
                         if (url.startsWith("/")) {
-                          // Enlace interno → navega con el router y cierra el panel.
+                          // Enlace interno → navega con el router SIN cerrar el panel
+                          // (el asesor sigue viendo los pasos mientras se mueve por la app).
                           return (
                             <button
-                              onClick={() => { setAbierto(false); router.push(url); }}
+                              onClick={() => router.push(url)}
                               className="inline font-semibold text-[var(--color-brand-primary)] underline hover:opacity-80"
                             >
                               {children}

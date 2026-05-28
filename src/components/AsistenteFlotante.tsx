@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Sparkles, Send, X, Loader2, Check, AlertTriangle } from "lucide-react";
+import { Sparkles, Send, X, Loader2, Check, AlertTriangle, Eraser } from "lucide-react";
 import { asistenteGlobal } from "@/lib/actions/asistente";
 import { ejecutarAccionTramite, type AccionTramite } from "@/lib/actions/asistente-acciones";
 import { useContextoTramite, pedirRefrescoTramite } from "@/lib/asistente-contexto";
@@ -40,6 +40,14 @@ export function AsistenteFlotante() {
     }
   }
 
+  // Limpia la conversación (empezar de cero) sin cerrar el panel.
+  function limpiar() {
+    setMensajes([]);
+    setAccionEstado({});
+    setError(null);
+    setInput("");
+  }
+
   // El humano confirma una acción propuesta → se ejecuta server-side y se refresca el trámite.
   async function confirmar(key: string, accion: AccionTramite) {
     if (!contexto?.expedienteId || accionEstado[key]) return;
@@ -73,7 +81,12 @@ export function AsistenteFlotante() {
         <div className="fixed bottom-5 left-5 z-40 w-[min(92vw,380px)] h-[min(70vh,560px)] bg-white border border-gray-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-[var(--color-brand-primary)] text-white">
             <span className="flex items-center gap-2 text-sm font-bold"><Sparkles size={16} /> Asistente</span>
-            <button onClick={() => setAbierto(false)} className="p-1 hover:opacity-80"><X size={18} /></button>
+            <div className="flex items-center gap-0.5">
+              {mensajes.length > 0 && (
+                <button onClick={limpiar} title="Nueva conversación" className="p-1 hover:opacity-80"><Eraser size={16} /></button>
+              )}
+              <button onClick={() => setAbierto(false)} title="Cerrar" className="p-1 hover:opacity-80"><X size={18} /></button>
+            </div>
           </div>
 
           {contexto && (

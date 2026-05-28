@@ -61,11 +61,31 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
   const pregunta = mensaje.trim();
   if (!pregunta) throw new Error("Mensaje vacío");
 
-  let contexto = "";
-  let expActivo: string | null = null; // expediente del usuario confirmado → habilita las acciones
+  // Catálogo de trámites — SIEMPRE disponible, incluso dentro de un trámite, para que el
+  // asesor pueda preguntar por OTROS trámites sin tener que salir. Solo ESTRUCTURA, cero datos de cliente.
+  const wfs = await db.workflow.findMany({
+    orderBy: [{ servicioId: "asc" }, { orden: "asc" }],
+    select: { id: true, nombre: true, metaPlazo: true, inputs: true, outputs: true, _count: { select: { pasos: true } } },
+  });
+  const catalogo =
+    `\nCONTEXTO: catálogo de trámites (${wfs.length}). De cada uno sabes qué datos/documentos necesita y cuántos pasos tiene:\n` +
+    wfs
+      .map((w) => {
+        const outs = (w.outputs as { artefacto: string }[] | null) ?? [];
+        const partes = [
+          `${w._count.pasos} pasos`,
+          w.metaPlazo ? `plazo: ${w.metaPlazo}` : "",
+          w.inputs.length ? `necesita: ${w.inputs.join(", ")}` : "",
+          outs.length ? `produce: ${outs.map((o) => o.artefacto).join(", ")}` : "",
+        ].filter(Boolean).join(" · ");
+        return `- «${w.nombre}» (id: ${w.id}) — ${partes}`;
+      })
+      .join("\n");
 
+  // Si el asesor está dentro de un trámite suyo, AÑADIMOS su detalle (no sustituye al catálogo).
+  let expActivo: string | null = null; // expediente del usuario confirmado → habilita las acciones
+  let tramiteCtx = "";
   if (expedienteId) {
-    // Contexto del trámite abierto (con comprobación de propiedad).
     const exp = await db.expediente.findUnique({
       where: { id: expedienteId },
       include: {
@@ -79,42 +99,21 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
       const pasosTxt = exp.pasos
         .map((p) => `${p.orden + 1}. [${NIVEL_TXT[p.nivel] ?? p.nivel}] ${p.accion}${p.gate ? ` (condición: ${p.gate})` : ""} — ${p.estado}`)
         .join("\n");
-      contexto = [
-        "",
-        `CONTEXTO: el asesor está dentro del trámite «${exp.workflow.nombre}».`,
+      tramiteCtx = [
+        `CONTEXTO ACTIVO: el asesor está DENTRO del trámite «${exp.workflow.nombre}».`,
         exp.workflow.metaPlazo ? `Plazo: ${exp.workflow.metaPlazo}.` : "",
         exp.workflow.metaBaseNormativa ? `Base normativa: ${exp.workflow.metaBaseNormativa}.` : "",
         exp.workflow.inputs?.length ? `Datos necesarios: ${exp.workflow.inputs.join("; ")}.` : "",
         "Pasos:",
         pasosTxt,
         `El asesor está en el paso ${exp.pasoActual + 1}.`,
-        "Si el asesor confirma que ha completado o quiere saltar un paso concreto, USA la herramienta marcar_paso (no lo des por hecho escribiendo solo texto). Refiere el paso por su número de orden.",
+        "La herramienta marcar_paso SOLO afecta a ESTE trámite. Si el asesor pregunta por OTRO trámite (p. ej. el 303 estando en el alta RETA), respóndele con normalidad usando el catálogo y NO uses marcar_paso.",
+        "Si el asesor confirma que ha completado o quiere saltar un paso de ESTE trámite, USA la herramienta marcar_paso (no lo des por hecho escribiendo solo texto). Refiere el paso por su número de orden.",
       ].filter(Boolean).join("\n");
     }
   }
 
-  if (!contexto) {
-    // Contexto general: catálogo con estructura ligera de cada trámite.
-    // Solo ESTRUCTURA (etiquetas del manual) — cero datos de cliente.
-    const wfs = await db.workflow.findMany({
-      orderBy: [{ servicioId: "asc" }, { orden: "asc" }],
-      select: { id: true, nombre: true, metaPlazo: true, inputs: true, outputs: true, _count: { select: { pasos: true } } },
-    });
-    contexto =
-      `\nCONTEXTO: catálogo de trámites (${wfs.length}). De cada uno sabes qué datos/documentos necesita y cuántos pasos tiene:\n` +
-      wfs
-        .map((w) => {
-          const outs = (w.outputs as { artefacto: string }[] | null) ?? [];
-          const partes = [
-            `${w._count.pasos} pasos`,
-            w.metaPlazo ? `plazo: ${w.metaPlazo}` : "",
-            w.inputs.length ? `necesita: ${w.inputs.join(", ")}` : "",
-            outs.length ? `produce: ${outs.map((o) => o.artefacto).join(", ")}` : "",
-          ].filter(Boolean).join(" · ");
-          return `- «${w.nombre}» (id: ${w.id}) — ${partes}`;
-        })
-        .join("\n");
-  }
+  const contexto = catalogo + (tramiteCtx ? "\n\n" + tramiteCtx : "");
 
   const system = BASE_SISTEMA + "\n" + contexto;
   const mensajes: ChatMsg[] = [...historial.slice(-10), { rol: "user", texto: pregunta }];

@@ -54,7 +54,13 @@ async function chatGemini({ system, mensajes, tools }: { system: string; mensaje
     if (res.ok) break;
     const ultimo = intento === MAX - 1;
     if (REINTENTABLE.has(res.status)) {
-      if (ultimo) throw new IAError("El asistente está saturado ahora mismo (mucha demanda en el modelo). Prueba de nuevo en unos segundos.");
+      if (ultimo) {
+        throw new IAError(
+          res.status === 429
+            ? "Se ha alcanzado el límite de uso del plan gratuito de Gemini. Espera un minuto y reintenta, o usa un modelo/plan con más cuota."
+            : "El asistente está saturado ahora mismo (mucha demanda en el modelo). Prueba de nuevo en unos segundos.",
+        );
+      }
       await new Promise((r) => setTimeout(r, 600 * (intento + 1))); // 0.6s, 1.2s
       continue;
     }

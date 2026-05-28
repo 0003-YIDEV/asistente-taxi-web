@@ -137,7 +137,9 @@ export async function asistenteGlobal(mensaje: string, historial: ChatMsg[] = []
 
   const contexto = catalogo + (tramiteCtx ? "\n\n" + tramiteCtx : "");
 
-  const system = BASE_SISTEMA + "\n" + contexto;
+  // El modelo no sabe la fecha por sí mismo: se la damos (útil para plazos/vencimientos).
+  const hoy = new Intl.DateTimeFormat("es-ES", { dateStyle: "full", timeZone: "Europe/Madrid" }).format(new Date());
+  const system = `${BASE_SISTEMA}\nFecha de hoy: ${hoy}.\n${contexto}`;
   const mensajes: ChatMsg[] = [...historial.slice(-10), { rol: "user", texto: pregunta }];
 
   // Solo dentro de un trámite del usuario se ofrecen acciones (function-calling).
